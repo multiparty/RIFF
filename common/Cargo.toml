@@ -1,0 +1,9 @@
+[package]
+name = "common"
+version = "0.1.0"
+authors = ["ScholarOftheFirstSin <45855539+ScholarOftheFirstSin@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
