@@ -3,6 +3,9 @@ use std::thread::spawn;
 use tungstenite::server::accept;
 use tungstenite::{connect, Message};
 
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
 pub struct Server {
     pub name: String,
 }
