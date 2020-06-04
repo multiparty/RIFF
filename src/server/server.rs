@@ -1,13 +1,28 @@
 use std::net::TcpListener;
 use std::thread::spawn;
 use tungstenite::server::accept;
-use tungstenite::{connect, Message};
+use tungstenite::{connect, Message, accept_hdr};
+use tungstenite::handshake::server::{Request, Response};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
+use std::{
+    collections::HashMap,
+    env,
+    io::Error as IoError,
+    net::SocketAddr,
+};
+
+
+pub struct SocketMap {
+    socket_ids: HashMap<u32, HashMap<u32, SocketAddr>>,
+    computation_ids: HashMap<SocketAddr, u32>,
+    party_ids: HashMap<SocketAddr, u32>,
+}
 
 pub struct Server {
     pub name: String,
+    socketMap: SocketMap,
 }
 
 impl Server {
