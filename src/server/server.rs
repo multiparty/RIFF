@@ -21,9 +21,9 @@ use std::{
 
 pub struct SocketMap {
     socket_ids: HashMap<u32, HashMap<u32, WebSocket<TcpStream>>>, //first: computation id ; second:party id
-    //computation_ids: HashMap<SocketAddr, u32>,
-    computation_ids: HashMap<WebSocket<TcpStream>, u32>,
-    party_ids: HashMap<WebSocket<TcpStream>, u32>, // party id
+    computation_ids: HashMap<SocketAddr, u32>,
+    //computation_ids: HashMap<WebSocket<TcpStream>, u32>,
+    party_ids: HashMap<SocketAddr, u32>, // party id
 }
 
 pub struct Server {
@@ -47,7 +47,7 @@ impl Server {
         let counter = Arc::new(Mutex::new(0));
         
 
-        for stream in server.incoming() {
+        while let Ok((stream, addr)) = server.accept() {
             
             //let websockets_hashmap = Arc::clone(&websockets_hashmap);
             let socket_map = Arc::clone(&socket_map);
@@ -62,11 +62,13 @@ impl Server {
                     println!("Received: {}", &num);
                     id = num.clone();
                 }
-                let websocket = accept(stream.unwrap()).unwrap();
+                let websocket = accept(stream).unwrap();
 
+                //build SocketMap
                 {
                     let mut socket_map = socket_map.write().unwrap();
-                    socket_map.computation_ids.insert(websocket, 1);
+                    socket_map.computation_ids.insert(addr, 1);
+                    socket_map.party_ids.insert(addr, id);
                     let mut socket_ids = &mut socket_map.socket_ids;
                     socket_ids.get_mut(&1).unwrap().insert(id, websocket);
                     
