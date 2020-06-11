@@ -20,9 +20,10 @@ use std::{
 };
 
 pub struct SocketMap {
-    socket_ids: HashMap<u32, HashMap<u32, SocketAddr>>,
-    computation_ids: HashMap<SocketAddr, u32>,
-    party_ids: HashMap<SocketAddr, u32>,
+    socket_ids: HashMap<u32, HashMap<u32, WebSocket<TcpStream>>>, //first: computation id ; second:party id
+    //computation_ids: HashMap<SocketAddr, u32>,
+    computation_ids: HashMap<WebSocket<TcpStream>, u32>,
+    party_ids: HashMap<WebSocket<TcpStream>, u32>, // party id
 }
 
 pub struct Server {
@@ -32,14 +33,24 @@ pub struct Server {
 
 impl Server {
     pub fn on(&self) {
+        let mut socket_map = SocketMap {
+            socket_ids : HashMap::new(),
+            computation_ids : HashMap::new(),
+            party_ids :HashMap::new(),
+        };
+        socket_map.socket_ids.insert(1, HashMap::new());
+        let socket_map = Arc::new(RwLock::new(socket_map));
+
         let server = TcpListener::bind("127.0.0.1:9001").unwrap();
         //let shared_message = Arc::new(Mutex::new(String::from("")));
-        let websockets_hashmap = Arc::new(RwLock::new(HashMap::new()));
+        //let websockets_hashmap = Arc::new(RwLock::new(HashMap::new()));
         let counter = Arc::new(Mutex::new(0));
+        
 
         for stream in server.incoming() {
-            //let shared_message = Arc::clone(&shared_message);
-            let websockets_hashmap = Arc::clone(&websockets_hashmap);
+            
+            //let websockets_hashmap = Arc::clone(&websockets_hashmap);
+            let socket_map = Arc::clone(&socket_map);
             let counter = Arc::clone(&counter);
 
             spawn(move || {
@@ -54,16 +65,20 @@ impl Server {
                 let websocket = accept(stream.unwrap()).unwrap();
 
                 {
-                    websockets_hashmap.write().unwrap().insert(id, websocket);
-                    println!("{:?}", websockets_hashmap);
+                    let mut socket_map = socket_map.write().unwrap();
+                    socket_map.computation_ids.insert(websocket, 1);
+                    let mut socket_ids = &mut socket_map.socket_ids;
+                    socket_ids.get_mut(&1).unwrap().insert(id, websocket);
+                    
+                    println!("{:?}", socket_ids.get(&1).unwrap().get(&id));
                 }
 
                 let mut planner = periodic::Planner::new();
                 planner.add(
                     move || {//let cur_websocket;//:
-                        let mut hashmap = websockets_hashmap.write().unwrap();
+                        let mut socket_map = socket_map.write().unwrap();
                         let cur_websocket: &mut tungstenite::protocol::WebSocket<std::net::TcpStream> =
-                            hashmap.get_mut(&id).unwrap();
+                            socket_map.socket_ids.get_mut(&1).unwrap().get_mut(&id).unwrap();
                         let msg = cur_websocket.read_message().unwrap();
     
                         println!("Received: {}", msg);
@@ -73,7 +88,7 @@ impl Server {
                         // *message = String::from("");
                         // *message += msg.to_text().unwrap();
     
-                        let broadcast_recipients = &mut hashmap.iter_mut().map(|(_, socket)| socket);
+                        let broadcast_recipients = &mut socket_map.socket_ids.get_mut(&1).unwrap().iter_mut().map(|(_, socket)| socket);
                         for recp in broadcast_recipients {
                             //recp.write_message(Message::Text((*(message.clone())).to_string())).unwrap();
                             recp.write_message(Message::Text(cur_message.clone()))

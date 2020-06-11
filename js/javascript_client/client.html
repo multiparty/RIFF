@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+</head>
+
+<body>
+    <script>
+        var ws = new WebSocket('ws://localhost:9001/socket');
+
+        ws.on('open', function (event) {
+            console.log('open');
+            ws.send('Jiang');
+        });
+
+        ws.on('message', function (event) {
+            console.log('From server message', event.data);
+        });
+
+        ws.on('close', function (event) {
+            console.log('close', event.code, event.reason);
+            ws = null;
+        });
+        // ws.onopen = function (event) {
+        //     ws.send("Here's some text that the server is urgently awaiting!");
+        // };
+        // ws.onmessage = function (event) {
+        //     console.log(event.data);
+        // }
+    </script>
+
+</body>
+
+</html>
