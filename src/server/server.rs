@@ -38,7 +38,7 @@ impl Server {
             computation_ids : HashMap::new(),
             party_ids :HashMap::new(),
         };
-        socket_map.socket_ids.insert(1, HashMap::new());
+        
         let socket_map = Arc::new(RwLock::new(socket_map));
 
         let server = TcpListener::bind("127.0.0.1:9001").unwrap();
@@ -67,30 +67,38 @@ impl Server {
                 //build SocketMap
                 {
                     let mut socket_map = socket_map.write().unwrap();
-                    socket_map.computation_ids.insert(addr, 1);
+                    if id == 1 || id == 2 {
+                        socket_map.computation_ids.insert(addr, 1);
+                    } else {
+                        socket_map.computation_ids.insert(addr, 2);
+                    }
                     socket_map.party_ids.insert(addr, id);
+                    let computation_id = socket_map.computation_ids.get(&addr).unwrap();
+                    let computation_id = *computation_id;
                     let mut socket_ids = &mut socket_map.socket_ids;
-                    socket_ids.get_mut(&1).unwrap().insert(id, websocket);
                     
-                    println!("{:?}", socket_ids.get(&1).unwrap().get(&id));
+                    socket_ids.entry(computation_id).or_insert(HashMap::new()).insert(id, websocket);
+                    
+                    
+                    //println!("{:?}", socket_ids.get(&1).unwrap().get(&id));
                 }
 
                 let mut planner = periodic::Planner::new();
                 planner.add(
                     move || {//let cur_websocket;//:
                         let mut socket_map = socket_map.write().unwrap();
+                        let computation_id = socket_map.computation_ids.get(&addr).unwrap();
+                        let computation_id = *computation_id;
                         let cur_websocket: &mut tungstenite::protocol::WebSocket<std::net::TcpStream> =
-                            socket_map.socket_ids.get_mut(&1).unwrap().get_mut(&id).unwrap();
+                            socket_map.socket_ids.get_mut(&computation_id).unwrap().get_mut(&id).unwrap();
                         let msg = cur_websocket.read_message().unwrap();
     
                         println!("Received: {}", msg);
                         let cur_message = msg.to_string();
     
-                        // let mut message = shared_message.lock().unwrap();
-                        // *message = String::from("");
-                        // *message += msg.to_text().unwrap();
-    
-                        let broadcast_recipients = &mut socket_map.socket_ids.get_mut(&1).unwrap().iter_mut().map(|(_, socket)| socket);
+                        
+
+                        let broadcast_recipients = &mut socket_map.socket_ids.get_mut(&computation_id).unwrap().iter_mut().map(|(_, socket)| socket);
                         for recp in broadcast_recipients {
                             //recp.write_message(Message::Text((*(message.clone())).to_string())).unwrap();
                             recp.write_message(Message::Text(cur_message.clone()))
@@ -101,20 +109,7 @@ impl Server {
                 );
                 planner.start();
 
-                //loop {
-                    
-
-                    //websocket.write_message(Message::Text((*(message.clone())).to_string())).unwrap();
-                    //thread::sleep(Duration::from_millis(5000));
-
-                    // We do not want to send back ping/pong messages.
-                    // if msg.is_binary() || msg.is_text() {
-                    //     websocket
-                    //         .write_message(Message::Text("Server message".into()))
-                    //         .unwrap();
-                    //     //websocket.write_message(msg).unwrap();
-                    // }
-                //}
+                
             });
         }
     }

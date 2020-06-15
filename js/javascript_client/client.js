@@ -3,7 +3,7 @@ var WebSocket = require('faye-websocket'),
 
 ws.on('open', function (event) {
     console.log('open');
-    ws.send('Clinet3');
+    ws.send('Clinet2');
 });
 
 ws.on('message', function (event) {
@@ -17,5 +17,5 @@ ws.on('close', function (event) {
 
 setInterval(function() {
     console.log('trying to send something');
-    ws.send('Clinet3');
+    ws.send('Clinet2');
 },5000);
