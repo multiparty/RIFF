@@ -1,4 +1,4 @@
-mod server;
+pub mod server;
 pub use crate::server::Server;
 
 
@@ -10,7 +10,7 @@ mod tests {
         let server = super::Server {
             name: String::from("server1"),
         };
+        assert_eq!(server.name, String::from("server1"));
 
-        server.on();
     }
 }
