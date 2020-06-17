@@ -1,0 +1,4 @@
+# RIFF
+This project aims to re-implement the functionality of the JIFF library for secure multiparty computation in the Rust programming language. JIFF is a Javascript library which aims to provide a developer-friendly framework for building and deploying applications which rely on multi-party computation. JIFF  is particularly suitable for web applications. The Rust implementation will provide a similar utility in the Rust language ecosystem, and may lend itself more to applications which do not require a user-facing web component. The resulting library will be fully interoperable with the existing javascript codebase, but will also be able to be run independently. Re-developing the library in Rust will allow for optimizations in the client-side computation and will be more suitable for performance critical applications.
+
+
