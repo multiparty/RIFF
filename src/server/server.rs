@@ -18,7 +18,7 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use crossbeam_utils::thread as crossbeam_thread;
+use crate::server::mailbox;
 
 pub struct SocketMap {
     pub socket_ids: HashMap<u32, HashMap<u32, WebSocket<TcpStream>>>, //first: computation id ; second:party id
@@ -28,7 +28,7 @@ pub struct SocketMap {
 
 pub struct Server {
     pub name: String,
-    pub mail_box: HashMap<u32, HashMap<u32, Vec<JasonMessage>>>, // first: computation id ; second: party_id
+    pub mail_box: HashMap<u32, HashMap<u32, Vec<String>>>, // first: computation id ; second: party_id
     //socketMap: SocketMap,
 }
 
@@ -93,7 +93,9 @@ impl Server {
                         socket_ids.entry(computation_id).or_insert(HashMap::new()).insert(id, websocket);
                         
                         // build mail_box
-                        this_clone.lock().unwrap().mail_box.entry(computation_id).or_insert(HashMap::new()).insert(id, Vec::new());
+                        let mut server_instance = this_clone.lock().unwrap();
+                        let mut computation_mailbox = server_instance.mail_box.entry(computation_id).or_insert(HashMap::new());
+                        computation_mailbox.entry(id).or_insert(Vec::new());
                         //self.mail_box.entry(computation_id).or_insert(HashMap::new()).insert(id, Vec::new() );
                         //println!("{:?}", socket_ids.get(&1).unwrap().get(&id));
                     }
@@ -108,14 +110,17 @@ impl Server {
                             let cur_websocket: &mut tungstenite::protocol::WebSocket<std::net::TcpStream> =
                                 socket_map.socket_ids.get_mut(&computation_id).unwrap().get_mut(&id).unwrap();
                             let msg = cur_websocket.read_message().unwrap();
-        
+                            
                             println!("Received: {}", msg);
                             let cur_message = msg.to_string();
                             let deserialized: JasonMessage = serde_json::from_str(&cur_message[..]).unwrap();
                             println!("deserialized = {:?}", deserialized);
-                            utility::handle_messages(&deserialized, &mut socket_map, addr);
-                            
-    
+                            let (receiver_id, msg) =utility::handle_messages(&deserialized, &mut socket_map, addr);
+                            let mut mailbox = &mut this_clone.lock().unwrap().mail_box;
+
+                            mailbox::put_in_mailbox(mailbox, computation_id,receiver_id, msg );
+                            let vec =mailbox::get_from_mailbox(mailbox, computation_id, id);
+                            println!("Clinet{} mailbox: {:?}", id,vec);
                             // let broadcast_recipients = &mut socket_map.socket_ids.get_mut(&computation_id).unwrap().iter_mut().map(|(_, socket)| socket);
                             // for recp in broadcast_recipients {
                             //     //recp.write_message(Message::Text((*(message.clone())).to_string())).unwrap();
