@@ -20,22 +20,25 @@ use std::{
 };
 use crate::server::mailbox;
 
+type PartyId = u32;
+type ComputationId = u32;
+
 pub struct SocketMap {
-    pub socket_ids: HashMap<u32, HashMap<u32, WebSocket<TcpStream>>>, //first: computation id ; second:party id
-    pub computation_ids: HashMap<SocketAddr, u32>,
-    pub party_ids: HashMap<SocketAddr, u32>, // party id
+    pub socket_ids: HashMap<ComputationId, HashMap<PartyId, WebSocket<TcpStream>>>, //first: computation id ; second:party id
+    pub computation_ids: HashMap<SocketAddr, ComputationId>,
+    pub party_ids: HashMap<SocketAddr, PartyId>, // party id
 }
 
 pub struct Server {
     pub name: String,
-    pub mail_box: HashMap<u32, HashMap<u32, Vec<String>>>, // first: computation id ; second: party_id
+    pub mail_box: HashMap<ComputationId, HashMap<PartyId, Vec<String>>>, // first: computation id ; second: party_id
     //socketMap: SocketMap,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JasonMessage {
     pub tag: String,
-    pub party_id : u32,
+    pub party_id : PartyId,
     pub message : String,
 }
 
