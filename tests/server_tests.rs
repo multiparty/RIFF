@@ -1,4 +1,5 @@
-use riff::server;
+use riff::server::{Server, restfulAPI};
+
 
 use std::{
     collections::HashMap,
@@ -11,8 +12,18 @@ use std::{
 
 #[test]
 fn open_websocket() {
-    let mut s = server::Server{ name: String::from("test_server"), mail_box: HashMap::new()};
+    let mut s = Server{ name: String::from("test_server"), mail_box: HashMap::new()};
     let this = Arc::new(Mutex::new(s));
     //s.on();
-    server::Server::on(this);
+    Server::on(this);
 }
+
+#[test]
+fn open_restfulAPI() {
+    let restfulAPI = restfulAPI::restfulAPI{ mail_box: HashMap::new()};
+    
+    //s.on();
+    restfulAPI.on();
+}
+
+

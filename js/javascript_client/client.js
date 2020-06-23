@@ -3,7 +3,7 @@ var WebSocket = require('faye-websocket'),
 
 ws.on('open', function (event) {
     console.log('open');
-    var msg = {tag: 'connect', party_id: 0 /*signifies who it's addressed to*/ , message: 'Client2'};
+    var msg = {tag: 'connect', party_id: 0 /*signifies who it's addressed to*/ , message: 'Client3'};
     ws.send(JSON.stringify(msg));
     //ws.send('Clinet1');
 });
@@ -20,6 +20,6 @@ ws.on('close', function (event) {
 setInterval(function() {
     console.log('trying to send something');
     //ws.send('Clinet4');
-    var msg = {tag: 'communicate', party_id: 1 /*signifies who it's addressed to*/ , message: 'my_message(Clinet2)'};
+    var msg = {tag: 'communicate', party_id: 2 /*signifies who it's addressed to*/ , message: 'my_message(Clinet3)'};
     ws.send(JSON.stringify(msg));
 },5000);

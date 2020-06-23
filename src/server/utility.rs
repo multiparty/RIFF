@@ -1,7 +1,40 @@
-use crate::server::JasonMessage;
+
 use crate::server::SocketMap;
 use std::net::SocketAddr;
 use tungstenite::Message;
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct JasonMessage {
+    pub tag: String,
+    pub party_id : u32,
+    pub message : String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct JasonMessage_rest {
+    pub computation_id : u32,
+    pub from_id : u32,
+    pub initialization : initialization_rest,
+    pub messeages: Vec<message_rest>,
+    pub ack: String,
+    pub additional: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct message_rest {
+    pub label: String,
+    pub payload: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct initialization_rest {
+    pub party_id: u32,
+    pub party_count: u32,
+    pub public_key: String,
+    pub additional: String,
+}
 
 pub fn handle_messages<'a> (
     object: &'a JasonMessage,

@@ -8,8 +8,7 @@ use tungstenite::protocol::WebSocket;
 use tungstenite::server::accept;
 use tungstenite::{accept_hdr, connect, Message};
 use crate::server::utility;
-use serde::{Deserialize, Serialize};
-use serde_json::Result;
+
 use std::{
     collections::HashMap,
     env,
@@ -19,6 +18,7 @@ use std::{
     thread,
 };
 use crate::server::mailbox;
+use crate::server::utility::JasonMessage;
 
 type PartyId = u32;
 type ComputationId = u32;
@@ -35,12 +35,7 @@ pub struct Server {
     //socketMap: SocketMap,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct JasonMessage {
-    pub tag: String,
-    pub party_id : PartyId,
-    pub message : String,
-}
+
 
 impl Server {
     //pub fn on(&mut self) {
@@ -131,7 +126,7 @@ impl Server {
                             //         .unwrap();
                             // }
                         },
-                        periodic::Every::new(Duration::from_secs(5)),
+                        periodic::Every::new(Duration::from_secs(3)),
                     );
                     planner.start();
     
