@@ -20,10 +20,12 @@ fn open_websocket() {
 
 #[test]
 fn open_restfulAPI() {
-    let restfulAPI = restfulAPI::restfulAPI{ mail_box: HashMap::new()};
+    let c_map = restfulAPI::computationMaps {clientIds:HashMap::new(), maxCount:HashMap::new(), keys:HashMap::new(), secretKeys:HashMap::new(), freeParties:HashMap::new()};
+    let  restfulAPI = restfulAPI::restfulAPI{ mail_box: HashMap::new(), computationMaps: c_map };
     
     //s.on();
-    restfulAPI.on();
+    //restfulAPI.on();
+    restfulAPI::on(Arc::new(Mutex::new(restfulAPI)));
 }
 
 

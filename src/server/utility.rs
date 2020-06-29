@@ -12,28 +12,29 @@ pub struct JasonMessage {
     pub message : String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct JasonMessage_rest {
-    pub computation_id : u32,
-    pub from_id : u32,
+    pub messages: Vec<message_rest>,
     pub initialization : initialization_rest,
-    pub messeages: Vec<message_rest>,
-    pub ack: String,
-    pub additional: String,
+    pub computation_id : String,
+    //pub from_id : u32,
+    
+    
+    //pub ack: String,
+    //pub additional: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct message_rest {
     pub label: String,
     pub payload: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct initialization_rest {
-    pub party_id: u32,
+    pub computation_id: String,
     pub party_count: u32,
     pub public_key: String,
-    pub additional: String,
 }
 
 pub fn handle_messages<'a> (

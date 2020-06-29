@@ -11,3 +11,6 @@ mod trait_server;
 
 pub mod restfulAPI;
 pub use self::restfulAPI::*;
+
+mod handlers;
+
