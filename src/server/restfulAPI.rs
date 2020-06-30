@@ -22,6 +22,9 @@ use std::{
     thread,
 };
 
+use crate::server::datastructure::intervals;
+use crate::server::hooks::serverHooks;
+
 type PartyId = u32;
 type ComputationId = u32;
 
@@ -32,21 +35,22 @@ pub struct output_initial {
     pub party_id: Option<u32>,
 }
 // maps that store state of computations
-pub struct computationMaps<'a> {
-    pub clientIds: HashMap<&'a str, Vec<String>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
-    //spareIds: HashMap<&str, >, // { computation_id -> <interval object> }
-    pub maxCount: HashMap<&'a str, u32>, // { computation_id -> <max number of parties allowed> }
-    pub keys: HashMap<&'a str, HashMap<&'a str, &'a str>>, // { computation_id -> { party_id -> <public_key> } }
-    pub secretKeys: HashMap<&'a str, &'a str>,             // { computation_id -> <privateKey> }
-    pub freeParties: HashMap<&'a str, HashMap<&'a str, bool>>, // { computation_id -> { id of every free party -> true } }
+pub struct computationMaps {
+    pub clientIds: HashMap<String, Vec<String>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
+    pub spareIds: HashMap<String, intervals::intervals>, // { computation_id -> <interval object> }
+    pub maxCount: HashMap<String, u64>, // { computation_id -> <max number of parties allowed> }
+    pub keys: HashMap<String, HashMap<String, String>>, // { computation_id -> { party_id -> <public_key> } }
+    pub secretKeys: HashMap<String, String>,             // { computation_id -> <privateKey> }
+    pub freeParties: HashMap<String, HashMap<String, bool>>, // { computation_id -> { id of every free party -> true } }
 }
-pub struct restfulAPI<'a> {
+pub struct restfulAPI {
     pub mail_box: HashMap<ComputationId, HashMap<PartyId, Vec<String>>>,
-    pub computationMaps: computationMaps<'a>,
+    pub computationMaps: computationMaps,
+    pub hooks: serverHooks,
 }
 
 
-impl<'a> server_trait for restfulAPI<'a> {
+impl server_trait for restfulAPI {
     fn send(&mut self, json: String, party_id: PartyId, computation_id: ComputationId) {
         let mut mailbox = &mut self.mail_box;
         mailbox::put_in_mailbox(mailbox, computation_id, party_id, json);
@@ -55,17 +59,22 @@ impl<'a> server_trait for restfulAPI<'a> {
 
 }
 
-impl<'a> restfulAPI<'a> {
+impl restfulAPI {
+
     #[tokio::main]
-    pub async fn on(instance:   Arc<Mutex<restfulAPI<'static>>>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let addr = ([127, 0, 0, 1], 3001).into();
+    pub async fn on(instance:   Arc<Mutex<restfulAPI>>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let addr = ([127, 0, 0, 1], 3001).into(); //3001 8080
         
         //let service = make_service_fn(|_| async { Ok::<_, hyper::Error>(service_fn(restfulAPI::listen)) });
-        let service = make_service_fn( |_| async { 
-            Ok::<_, hyper::Error>(service_fn( |req| 
+        let service = make_service_fn(move |_| {
+            let instance = Arc::clone(&instance);
+            async { 
+            
+            Ok::<_, hyper::Error>(service_fn(move |req| {
                 
-                restfulAPI::listen(req, instance.clone())
-            ))
+                restfulAPI::listen(req, instance.to_owned())
+            }))
+        }
         });
         let server = Server::bind(&addr).serve(service);
         println!("Listening on http://{}", addr);
@@ -75,7 +84,7 @@ impl<'a> restfulAPI<'a> {
 
     async fn listen(
         req: Request<Body>,
-        restful_instance: Arc<Mutex<restfulAPI<'static>>>,
+        restful_instance: Arc<Mutex<restfulAPI>>,
     ) -> Result<Response<Body>, hyper::Error> {
         match (req.method(), req.uri().path()) {
             // Convert to uppercase before sending back to client using a stream.
@@ -85,10 +94,10 @@ impl<'a> restfulAPI<'a> {
                 let body_string = std::str::from_utf8(&full_body[..]).unwrap();
                 let deserialized: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
+                println!("{:?}", deserialized);
                 let output = restfulAPI::initializeParty(deserialized, restful_instance);
                 //let (receiver_id, msg) =utility::handle_messages(&deserialized, &mut socket_map, addr);
                 println!("{}", body_string);
-                //println!("{:?}", deserialized);
                 Ok(Response::new(Body::from("Success")))
             }
 
@@ -123,7 +132,7 @@ impl<'a> restfulAPI<'a> {
             let output = handlers::initializeParty(
                 instance,
                 msg["computation_id"].as_str().unwrap(),
-                initialization["party_id"].as_str().unwrap(),
+                &initialization["party_id"],
                 &initialization["party_count"],
                 initialization,
                 false,

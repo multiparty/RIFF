@@ -14,3 +14,9 @@ pub use self::restfulAPI::*;
 
 mod handlers;
 
+pub mod datastructure;
+pub use crate::server::datastructure::intervals;
+
+pub mod hooks;
+pub use self::hooks::*;
+

@@ -1,5 +1,5 @@
 pub mod server;
-pub use crate::server::Server;
+pub use crate::server::*;
 
 
 // #[cfg(test)]
