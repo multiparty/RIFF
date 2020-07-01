@@ -11,7 +11,7 @@ use std::{
 };
 //#[async_trait]
 pub trait server_trait {
-    fn send (&mut self, json: String, party_id:u32, computation_id: u32);
+    fn send (&mut self, json: String, party_id:u64, computation_id: String);
 
     //async fn listen(req: Request<Body>, computationMaps: computationMaps) -> Result<Response<Body>, hyper::Error>;
 }

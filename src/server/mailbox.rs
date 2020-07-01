@@ -7,7 +7,7 @@ use std::{
     thread,
 };
 
-pub fn put_in_mailbox(mailbox:&mut HashMap<u32, HashMap<u32, Vec<String>>>, computation_id: u32, party_id: u32, msg: String) -> &Vec<String> {
+pub fn put_in_mailbox(mailbox:&mut HashMap<String, HashMap<u64, Vec<String>>>, computation_id: String, party_id: u64, msg: String) -> &Vec<String> {
     let computation_mailbox = mailbox.get_mut(&computation_id).unwrap();
     computation_mailbox.entry(party_id).or_insert(Vec::new()).push(msg);
     computation_mailbox.get_mut(&party_id).unwrap()

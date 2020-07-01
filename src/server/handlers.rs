@@ -50,12 +50,32 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &str,
     // Fourth: Make sure party id is fine.
     // if party_id is given, try to reserve it if free.
     // if no party_id is given, generate a new free one.
-    let party_id_u64: u64;
-    if *party_id != Value::Null {
-        //if party_id != "s1" && !instance.lock().unwrap().computationMaps.spare
-    } else { // generate spare party_id
+    // let party_id_u64: u64;
+    // if *party_id != Value::Null {
+    //     if party_id != "s1" && !instance.lock().unwrap().computationMaps.spareIds.get(computation_id).unwrap().is_free(party_id.as_u64().unwrap()) {
+    //         // ID is not spare, but maybe it has disconnected and trying to reconnect? maybe a mistaken client? maybe malicious?
+    //         // Cannot handle all possible applications logic, rely on hooks to allow developers to inject case-specific logic.
+    //     }
+    // } else { // generate spare party_id
+    //     party_id_u64 = instance.lock().unwrap().computationMaps.spareIds.get(computation_id).unwrap().create_free().unwrap();
+    // }
+    let mut party_id_u64: u64 = 999; //999 means 's1'
+    if *party_id == Value::Null {
         party_id_u64 = instance.lock().unwrap().computationMaps.spareIds.get(computation_id).unwrap().create_free().unwrap();
+    } else if party_id != "s1"{
+        party_id_u64 = party_id.as_u64().unwrap();
     }
+
+    // All is good: begin initialization
+    // reserve id
+    if party_id != "s1" {
+        instance.lock().unwrap().computationMaps.spareIds.get_mut(computation_id).unwrap().reserve(party_id_u64);
+    }
+
+    // make sure the computation meta-info objects are defined for this computation id
+    //let intance = instance.lock().unwrap();
+    instance.lock().unwrap().initComputation(computation_id, party_id_u64, party_count_u64);
+
     return output_initial {
         success : false,
         error: Some("Party id s1 is reserved for server computation instances. This incident will be reported!".to_string()), 

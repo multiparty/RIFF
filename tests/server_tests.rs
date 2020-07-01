@@ -1,4 +1,4 @@
-use riff::server::{Server, restfulAPI, hooks};
+use riff::server::{Server, restfulAPI, hooks, maps};
 
 
 use std::{
@@ -25,7 +25,8 @@ fn open_websocket() {
 fn open_restfulAPI() {
     let c_map = restfulAPI::computationMaps {clientIds:HashMap::new(), maxCount:HashMap::new(), keys:HashMap::new(), secretKeys:HashMap::new(), freeParties:HashMap::new(), spareIds:HashMap::new()};
     let serverHooks = hooks::serverHooks {};
-    let  restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: HashMap::new(), computationMaps: c_map, hooks: serverHooks};
+    let maps = maps {tags: HashMap::new(), pendingMessages: HashMap::new()};
+    let  restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: HashMap::new(), computationMaps: c_map, hooks: serverHooks, maps:maps};
     
     //s.on();s
     //restfulAPI.on();

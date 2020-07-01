@@ -25,8 +25,18 @@ use std::{
 use crate::server::datastructure::intervals;
 use crate::server::hooks::serverHooks;
 
-type PartyId = u32;
-type ComputationId = u32;
+type PartyId = u64;
+type ComputationId = String;
+
+pub struct pending_message {
+    tag: String,
+    store_id: u64,
+}
+// restAPI specific maps
+pub struct maps {
+    pub tags: HashMap<ComputationId, HashMap<PartyId, u64>>, // { computation_id -> { party_id -> lastTag } }
+    pub pendingMessages: HashMap<ComputationId, HashMap<PartyId, pending_message>> // { computation_id -> { party_id -> { tag: tag, ptr: ptr } } }
+}
 
 pub struct output_initial {
     pub success: bool,
@@ -36,7 +46,7 @@ pub struct output_initial {
 }
 // maps that store state of computations
 pub struct computationMaps {
-    pub clientIds: HashMap<String, Vec<String>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
+    pub clientIds: HashMap<String, Vec<u64>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
     pub spareIds: HashMap<String, intervals::intervals>, // { computation_id -> <interval object> }
     pub maxCount: HashMap<String, u64>, // { computation_id -> <max number of parties allowed> }
     pub keys: HashMap<String, HashMap<String, String>>, // { computation_id -> { party_id -> <public_key> } }
@@ -47,6 +57,7 @@ pub struct restfulAPI {
     pub mail_box: HashMap<ComputationId, HashMap<PartyId, Vec<String>>>,
     pub computationMaps: computationMaps,
     pub hooks: serverHooks,
+    pub maps: maps,
 }
 
 
@@ -139,6 +150,30 @@ impl restfulAPI {
             );
             output
             //output_initial {success: false, error: Some("cannot determine party id".to_string()), initialization: None, party_id:None}
+        }
+    }
+
+    pub fn initComputation (&mut self, computation_id: &str, party_id: u64, party_count: u64) {
+        if self.computationMaps.clientIds.get(computation_id) == None {
+            self.computationMaps.clientIds.insert(computation_id.to_string(), Vec::new());
+            self.computationMaps.maxCount.insert(computation_id.to_string(), party_count);
+            self.computationMaps.freeParties.insert(computation_id.to_string(), HashMap::new());
+            self.computationMaps.keys.insert(computation_id.to_string(), HashMap::new());
+            self.mail_box.insert(computation_id.to_string(), HashMap::new());
+ 
+        }
+        if !self.computationMaps.clientIds.get(computation_id).unwrap().contains(&party_id) {
+            self.computationMaps.clientIds.get_mut(computation_id).unwrap().push(party_id);
+        }
+
+        //restful spcific
+        if self.maps.tags.get(computation_id) == None {
+            self.maps.tags.insert(computation_id.to_string(), HashMap::new());
+            self.maps.pendingMessages.insert(computation_id.to_string(), HashMap::new());
+        }
+
+        if self.maps.tags.get(computation_id).unwrap().get(&party_id) == None {
+            self.maps.tags.get_mut(computation_id).unwrap().entry(party_id).or_insert(0);
         }
     }
 }
