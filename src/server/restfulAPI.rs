@@ -5,6 +5,8 @@ use hyper::{Body, Request, Response, Server};
 use hyper::{Method, StatusCode};
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use sodiumoxide::crypto::box_::PublicKey;
+use sodiumoxide::crypto::box_::SecretKey;
 
 //use serde_json::Result;
 use crate::server::handlers;
@@ -49,15 +51,16 @@ pub struct computationMaps {
     pub clientIds: HashMap<String, Vec<u64>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
     pub spareIds: HashMap<String, intervals::intervals>, // { computation_id -> <interval object> }
     pub maxCount: HashMap<String, u64>, // { computation_id -> <max number of parties allowed> }
-    pub keys: HashMap<String, HashMap<String, String>>, // { computation_id -> { party_id -> <public_key> } }
-    pub secretKeys: HashMap<String, String>,             // { computation_id -> <privateKey> }
-    pub freeParties: HashMap<String, HashMap<String, bool>>, // { computation_id -> { id of every free party -> true } }
+    pub keys: HashMap<String, HashMap<u64, Vec<u8>>>, // { computation_id -> { party_id -> <public_key> } }
+    pub secretKeys: HashMap<String, Vec<u8>>,             // { computation_id -> <privateKey> }
+    pub freeParties: HashMap<String, HashMap<u64, bool>>, // { computation_id -> { id of every free party -> true } }
 }
 pub struct restfulAPI {
     pub mail_box: HashMap<ComputationId, HashMap<PartyId, Vec<String>>>,
     pub computationMaps: computationMaps,
     pub hooks: serverHooks,
     pub maps: maps,
+    pub sodium: bool,
 }
 
 

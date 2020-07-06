@@ -10,6 +10,10 @@ use std::{
     thread,
 };
 
+use sodiumoxide::crypto::box_::PublicKey;
+use sodiumoxide::crypto::box_::SecretKey;
+use sodiumoxide::crypto::box_;
+
 
 
 #[test]
@@ -21,12 +25,18 @@ fn open_websocket() {
 }
 
 #[test]
+fn sodiumTest() {
+    let (ourpk, oursk) = box_::gen_keypair();
+    println!("{:?}", ourpk);
+}
+
+#[test]
 //#[tokio::test]
 fn open_restfulAPI() {
     let c_map = restfulAPI::computationMaps {clientIds:HashMap::new(), maxCount:HashMap::new(), keys:HashMap::new(), secretKeys:HashMap::new(), freeParties:HashMap::new(), spareIds:HashMap::new()};
     let serverHooks = hooks::serverHooks {};
     let maps = maps {tags: HashMap::new(), pendingMessages: HashMap::new()};
-    let  restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: HashMap::new(), computationMaps: c_map, hooks: serverHooks, maps:maps};
+    let  restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: HashMap::new(), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true};
     
     //s.on();s
     //restfulAPI.on();
