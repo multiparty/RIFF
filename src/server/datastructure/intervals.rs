@@ -1,4 +1,6 @@
 use math::round;
+use serde::{Deserialize, Serialize};
+//use serde_json::Result;
 #[derive(PartialEq)]
 pub struct interval {
     pub start: u64,

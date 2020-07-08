@@ -14,6 +14,8 @@ use sodiumoxide::crypto::box_::PublicKey;
 use sodiumoxide::crypto::box_::SecretKey;
 use sodiumoxide::crypto::box_;
 
+use serde_json::json;
+
 
 
 #[test]
@@ -33,10 +35,10 @@ fn sodiumTest() {
 #[test]
 //#[tokio::test]
 fn open_restfulAPI() {
-    let c_map = restfulAPI::computationMaps {clientIds:HashMap::new(), maxCount:HashMap::new(), keys:HashMap::new(), secretKeys:HashMap::new(), freeParties:HashMap::new(), spareIds:HashMap::new()};
+    let c_map = restfulAPI::computationMaps {clientIds:json!({}), maxCount:json!({}), keys:json!({}), secretKeys:json!({}), freeParties:json!({}), spareIds:HashMap::new()};
     let serverHooks = hooks::serverHooks {};
-    let maps = maps {tags: HashMap::new(), pendingMessages: HashMap::new()};
-    let  restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: HashMap::new(), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true};
+    let maps = maps {tags: json!({}), pendingMessages: json!({})};
+    let restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: json!({}), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true};
     
     //s.on();s
     //restfulAPI.on();

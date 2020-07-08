@@ -20,8 +20,9 @@ impl serverHooks {
         return intervals_fn(1, party_count)
     }
 
-    pub fn generateKeyPair (instance: Arc<Mutex<restfulAPI>>) -> (Option<PublicKey>, Option<SecretKey>){
-        if instance.lock().unwrap().sodium {
+    pub fn generateKeyPair (sodium: bool) -> (Option<PublicKey>, Option<SecretKey>){
+        println!("in generateKeyPair 1");
+        if sodium {
             let (pub_key, sec_key) = box_::gen_keypair();
             return (Some(pub_key), Some(sec_key))
         } else {
@@ -29,8 +30,8 @@ impl serverHooks {
         }
     }
 
-    pub fn parseKey (instance: Arc<Mutex<restfulAPI>>, keyString: &Value) -> Option<Vec<u8>> {
-        if instance.lock().unwrap().sodium {
+    pub fn parseKey (sodium: bool, keyString: &Value) -> Option<Vec<u8>> {
+        if sodium {
             let array: Vec<u8> = serde_json::from_str(keyString.as_str().unwrap()).unwrap();
             return Some(array)
         } else {
@@ -38,9 +39,9 @@ impl serverHooks {
         }
     }
 
-    pub fn dumpKey (instance: Arc<Mutex<restfulAPI>>, key: &Vec<u8>) -> String{
-        if instance.lock().unwrap().sodium {
-            return  format!("{:?}", key);
+    pub fn dumpKey (sodium: bool, key: &Value) -> String{
+        if sodium {
+            return  key.to_string()
         } else {
             String::new()
         }

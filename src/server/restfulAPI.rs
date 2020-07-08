@@ -9,6 +9,7 @@ use sodiumoxide::crypto::box_::PublicKey;
 use sodiumoxide::crypto::box_::SecretKey;
 
 //use serde_json::Result;
+use serde_json::json;
 use crate::server::handlers;
 use crate::server::mailbox;
 use crate::server::trait_server::server_trait;
@@ -36,27 +37,27 @@ pub struct pending_message {
 }
 // restAPI specific maps
 pub struct maps {
-    pub tags: HashMap<ComputationId, HashMap<PartyId, u64>>, // { computation_id -> { party_id -> lastTag } }
-    pub pendingMessages: HashMap<ComputationId, HashMap<PartyId, pending_message>> // { computation_id -> { party_id -> { tag: tag, ptr: ptr } } }
+    pub tags: Value,//HashMap<Value, HashMap<Value, u64>>, // { computation_id -> { party_id -> lastTag } }
+    pub pendingMessages: Value,//HashMap<Value, HashMap<Value, pending_message>> // { computation_id -> { party_id -> { tag: tag, ptr: ptr } } }
 }
 
-pub struct output_initial {
-    pub success: bool,
-    pub error: Option<String>,
-    pub initialization: Option<initialization_rest>,
-    pub party_id: Option<u32>,
-}
+// pub struct output_initial {
+//     pub success: bool,
+//     pub error: Option<String>,
+//     pub initialization: Option<initialization_rest>,
+//     pub party_id: Option<u32>,
+// }
 // maps that store state of computations
 pub struct computationMaps {
-    pub clientIds: HashMap<String, Vec<u64>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
+    pub clientIds: Value,//HashMap<Value, Vec<Value>>, // { computation_id -> [ party1_id, party2_id, ...] } for only registered/initialized clients
     pub spareIds: HashMap<String, intervals::intervals>, // { computation_id -> <interval object> }
-    pub maxCount: HashMap<String, u64>, // { computation_id -> <max number of parties allowed> }
-    pub keys: HashMap<String, HashMap<u64, Vec<u8>>>, // { computation_id -> { party_id -> <public_key> } }
-    pub secretKeys: HashMap<String, Vec<u8>>,             // { computation_id -> <privateKey> }
-    pub freeParties: HashMap<String, HashMap<u64, bool>>, // { computation_id -> { id of every free party -> true } }
+    pub maxCount: Value,//HashMap<Value, Value>, // { computation_id -> <max number of parties allowed> }
+    pub keys: Value,//HashMap<Value, HashMap<Value, Vec<u8>>>, // { computation_id -> { party_id -> <public_key> } }
+    pub secretKeys: Value,//HashMap<Value, Vec<u8>>,             // { computation_id -> <privateKey> }
+    pub freeParties: Value,//HashMap<Value, HashMap<Value, bool>>, // { computation_id -> { id of every free party -> true } }
 }
 pub struct restfulAPI {
-    pub mail_box: HashMap<ComputationId, HashMap<PartyId, Vec<String>>>,
+    pub mail_box: Value,//HashMap<Value, HashMap<Value, Vec<Value>>>,
     pub computationMaps: computationMaps,
     pub hooks: serverHooks,
     pub maps: maps,
@@ -67,7 +68,7 @@ pub struct restfulAPI {
 impl server_trait for restfulAPI {
     fn send(&mut self, json: String, party_id: PartyId, computation_id: ComputationId) {
         let mut mailbox = &mut self.mail_box;
-        mailbox::put_in_mailbox(mailbox, computation_id, party_id, json);
+        //mailbox::put_in_mailbox(mailbox, computation_id, party_id, json);
     }
 
 
@@ -77,7 +78,7 @@ impl restfulAPI {
 
     #[tokio::main]
     pub async fn on(instance:   Arc<Mutex<restfulAPI>>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let addr = ([127, 0, 0, 1], 3001).into(); //3001 8080
+        let addr = ([127, 0, 0, 1], 8080).into(); //3001 8080
         
         //let service = make_service_fn(|_| async { Ok::<_, hyper::Error>(service_fn(restfulAPI::listen)) });
         let service = make_service_fn(move |_| {
@@ -109,10 +110,16 @@ impl restfulAPI {
                 let deserialized: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
                 println!("{:?}", deserialized);
-                let output = restfulAPI::initializeParty(deserialized, restful_instance);
-                //let (receiver_id, msg) =utility::handle_messages(&deserialized, &mut socket_map, addr);
+                let output = restfulAPI::initializeParty(deserialized, restful_instance.clone());
                 println!("{}", body_string);
-                Ok(Response::new(Body::from("Success")))
+                if !output["success"].as_bool().unwrap() {
+                    return Ok(Response::new(Body::from(output.to_string())))
+                }
+                // Third: handle given messages / operations.
+                //let (receiver_id, msg) =utility::handle_messages(&deserialized, &mut socket_map, addr);
+                //println!("{}", body_string);
+                // Execute end hooks
+                Ok(Response::new(Body::from(output.to_string())))
             }
 
             // Return the 404 Not Found for other routes.
@@ -123,60 +130,72 @@ impl restfulAPI {
             }
         }
     }
-
-    fn initializeParty(msg: Value, instance: Arc<Mutex<restfulAPI>>) -> output_initial {
-        let initialization = &msg["initialization"];
+    // Helpers used within the '/poll' route
+    fn initializeParty(mut msg: Value, instance: Arc<Mutex<restfulAPI>>) -> Value {
+        let mut initialization = &msg["initialization"];
         if *initialization == Value::Null {
             if msg["from_id"] == Value::Null {
-                output_initial {
-                    success: false,
-                    error: Some("cannot determine party id".to_string()),
-                    initialization: None,
-                    party_id: None,
-                }
-            } else {
-                output_initial {
-                    success: true,
-                    error: None,
-                    initialization: None,
-                    party_id: Some(msg["from_id"].as_u64().unwrap() as u32),
-                }
-            }
-        } else {
-            let output = handlers::initializeParty(
-                instance,
-                msg["computation_id"].as_str().unwrap(),
+                return json!({
+                    "success": false,
+                    "error": "cannot determine party id",
+                })
+            } 
+            return json!({
+                "success": true,
+                "initialization": Value::Null,
+                "party_id": msg["from_id"],
+            })       
+        } 
+        let mut output = handlers::initializeParty(
+                instance.clone(),
+                &msg["computation_id"],
                 &initialization["party_id"],
                 &initialization["party_count"],
                 initialization,
                 false,
             );
-            output
-            //output_initial {success: false, error: Some("cannot determine party id".to_string()), initialization: None, party_id:None}
+        if !output["success"].as_bool().unwrap() {
+            return output
         }
+
+        output["party_id"] = output["message"]["party_id"].clone();
+        output["message"] = json!(output["message"].to_string());
+            //output_initial {success: false, error: Some("cannot determine party id".to_string()), initialization: None, party_id:None}
+        return output
     }
 
-    pub fn initComputation (&mut self, computation_id: &str, party_id: u64, party_count: u64) {
-        if self.computationMaps.clientIds.get(computation_id) == None {
-            self.computationMaps.clientIds.insert(computation_id.to_string(), Vec::new());
-            self.computationMaps.maxCount.insert(computation_id.to_string(), party_count);
-            self.computationMaps.freeParties.insert(computation_id.to_string(), HashMap::new());
-            self.computationMaps.keys.insert(computation_id.to_string(), HashMap::new());
-            self.mail_box.insert(computation_id.to_string(), HashMap::new());
+    pub fn initComputation (&mut self, computation_id: &Value, party_id: &Value, party_count: &Value) {
+        if self.computationMaps.clientIds[computation_id.as_str().unwrap()] == Value::Null {
+            self.computationMaps.clientIds.as_object_mut().unwrap().insert(computation_id.to_string(), json!([]));
+            self.computationMaps.maxCount.as_object_mut().unwrap().insert(computation_id.to_string(), party_count.clone());
+            self.computationMaps.freeParties.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
+            self.computationMaps.keys.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
+            self.mail_box.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
  
         }
-        if !self.computationMaps.clientIds.get(computation_id).unwrap().contains(&party_id) {
-            self.computationMaps.clientIds.get_mut(computation_id).unwrap().push(party_id);
+        if !self.computationMaps.clientIds[computation_id.to_string()].as_array_mut().unwrap().contains(&party_id) {
+            self.computationMaps.clientIds[computation_id.to_string()].as_array_mut().unwrap().push(party_id.clone());
         }
 
         //restful spcific
-        if self.maps.tags.get(computation_id) == None {
-            self.maps.tags.insert(computation_id.to_string(), HashMap::new());
-            self.maps.pendingMessages.insert(computation_id.to_string(), HashMap::new());
+        if self.maps.tags[computation_id.to_string()] == Value::Null {
+            self.maps.tags.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
+            self.maps.pendingMessages.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
         }
 
-        if self.maps.tags.get(computation_id).unwrap().get(&party_id) == None {
-            self.maps.tags.get_mut(computation_id).unwrap().entry(party_id).or_insert(0);
+        if self.maps.tags[computation_id.to_string()][party_id.to_string()] == Value::Null {
+            self.maps.tags[computation_id.to_string()].as_object_mut().unwrap().insert(party_id.to_string(), json!(0));
         }
+    }
+
+    pub fn safe_emit (&mut self, label: String, msg: String, computation_id: &Value, to_id: &Value) {
+        if to_id == 999 {
+            return
+        }
+
+        let store_id = mailbox::put_in_mailbox(self, label, msg, computation_id, to_id);
+
+        // store message in mailbox so that it can be resent in case of failure.
+
     }
 }
