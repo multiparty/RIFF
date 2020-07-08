@@ -23,7 +23,9 @@ use std::{
     io::Error as IoError,
     sync::{Arc, Mutex},
     thread,
+    cmp,
 };
+
 
 use crate::server::datastructure::intervals;
 use crate::server::hooks::serverHooks;
@@ -107,19 +109,46 @@ impl restfulAPI {
                 let full_body = hyper::body::to_bytes(req.into_body()).await?;
                 //let body = req.into_body();
                 let body_string = std::str::from_utf8(&full_body[..]).unwrap();
-                let deserialized: Value = serde_json::from_str(body_string).unwrap();
+                let msg: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
-                println!("{:?}", deserialized);
-                let output = restfulAPI::initializeParty(deserialized, restful_instance.clone());
-                println!("{}", body_string);
+                //println!("{:?}", msg);
+                // First: attempt to initialize if needed.
+                let output = restfulAPI::initializeParty(msg.clone(), restful_instance.clone());
                 if !output["success"].as_bool().unwrap() {
-                    return Ok(Response::new(Body::from(output.to_string())))
+                    return Ok(Response::new(Body::from(json!({
+                        "success": json!(false),
+                        "label": json!("initialization"),
+                        "error": output[String::from("error")],
+                    }).to_string())))
                 }
+                //println!("{:?}", output);
+                // Initialization successful: read parameters and construct response!
+                let mut response = json!({
+                    "success": json!(true),
+                    "initialization": output["message"],
+                });
+                let computation_id = msg["computation_id"].clone();
+                let from_id = output["party_id"].clone();
+                // Second: free acknowledged tag.
+                //jiff.restful.freeTag(computation_id, from_id, msg['ack']);
+
                 // Third: handle given messages / operations.
                 //let (receiver_id, msg) =utility::handle_messages(&deserialized, &mut socket_map, addr);
                 //println!("{}", body_string);
                 // Execute end hooks
-                Ok(Response::new(Body::from(output.to_string())))
+
+                // Fourth: dump mailbox and encrypt.
+                let dumped = restful_instance.lock().unwrap().dumpMailbox(computation_id, from_id);
+                response.as_object_mut().unwrap().insert(String::from("messages"), dumped["messages"].clone());
+                if dumped["ack"] != Value::Null {
+                    response.as_object_mut().unwrap().insert(String::from("ack"), dumped["ack"].clone());
+                }
+
+                // Execute end hooks
+                //response = jiff.hooks.execute_array_hooks('afterOperation', [jiff, 'poll', computation_id, from_id, response], 4);
+                // Respond back!
+                println!("{:?}", response);
+                Ok(Response::new(Body::from(response.to_string())))
             }
 
             // Return the 404 Not Found for other routes.
@@ -134,6 +163,7 @@ impl restfulAPI {
     fn initializeParty(mut msg: Value, instance: Arc<Mutex<restfulAPI>>) -> Value {
         let mut initialization = &msg["initialization"];
         if *initialization == Value::Null {
+            //println!("initialization");
             if msg["from_id"] == Value::Null {
                 return json!({
                     "success": false,
@@ -157,9 +187,11 @@ impl restfulAPI {
         if !output["success"].as_bool().unwrap() {
             return output
         }
-
-        output["party_id"] = output["message"]["party_id"].clone();
-        output["message"] = json!(output["message"].to_string());
+        //println!("{:?}", output);
+        let inner = output["message"]["party_id"].clone();
+        output.as_object_mut().unwrap().insert(String::from("party_id"), inner);
+        //output["message"] = json!(output["message"].to_string());
+        //println!("{:?}", output);
             //output_initial {success: false, error: Some("cannot determine party id".to_string()), initialization: None, party_id:None}
         return output
     }
@@ -189,7 +221,7 @@ impl restfulAPI {
     }
 
     pub fn safe_emit (&mut self, label: String, msg: String, computation_id: &Value, to_id: &Value) {
-        if to_id == 999 {
+        if to_id == "s1" {
             return
         }
 
@@ -197,5 +229,40 @@ impl restfulAPI {
 
         // store message in mailbox so that it can be resent in case of failure.
 
+    }
+
+    pub fn dumpMailbox (&mut self, computation_id: Value, party_id: Value) -> Value {
+        let mailbox = mailbox::get_from_mailbox(self, computation_id.clone(), party_id.clone());
+        if mailbox.len() == 0 {
+            return json!({
+                "messages": json!([])
+            })
+        }
+
+        let mut messages = Vec::new();
+        let count = cmp::min(150, mailbox.len());
+        let mut i = 0;
+        while i < count {
+            let letter = mailbox[i].clone();
+            messages.push(json!({
+                "label": letter[String::from("label")],
+                "payload": letter[String::from("msg")],
+            }));
+            i = i + 1;
+        }
+
+        // come up with unique tag
+        let x: u64 = 2;
+        let LARGE = x.pow(32);
+        let tag = (self.maps.tags[computation_id.to_string()][party_id.to_string()].as_u64().unwrap() + 1) % LARGE;
+        self.maps.tags[computation_id.to_string()].as_object_mut().unwrap().insert(party_id.to_string(), json!(tag));
+        self.maps.pendingMessages[computation_id.to_string()].as_object_mut().unwrap().insert(party_id.to_string(), json!({
+            "tag": json!(tag),
+            "store_id": mailbox[count - 1]["id"],
+        }));
+        return json!({
+            "ack": json!(tag),
+            "messages": json!(messages),
+        })
     }
 }

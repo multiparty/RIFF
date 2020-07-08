@@ -21,7 +21,7 @@ impl serverHooks {
     }
 
     pub fn generateKeyPair (sodium: bool) -> (Option<PublicKey>, Option<SecretKey>){
-        println!("in generateKeyPair 1");
+        //println!("in generateKeyPair 1");
         if sodium {
             let (pub_key, sec_key) = box_::gen_keypair();
             return (Some(pub_key), Some(sec_key))

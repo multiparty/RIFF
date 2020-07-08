@@ -117,8 +117,8 @@ impl Server {
                             let mut mailbox = &mut this_clone.lock().unwrap().mail_box;
 
                             //mailbox::put_in_mailbox(mailbox, computation_id,receiver_id, msg );
-                            let vec =mailbox::get_from_mailbox(mailbox, computation_id, id);
-                            println!("Clinet{} mailbox: {:?}", id,vec);
+                            //let vec =mailbox::get_from_mailbox(mailbox, computation_id, id);
+                            //println!("Clinet{} mailbox: {:?}", id,vec);
                             // let broadcast_recipients = &mut socket_map.socket_ids.get_mut(&computation_id).unwrap().iter_mut().map(|(_, socket)| socket);
                             // for recp in broadcast_recipients {
                             //     //recp.write_message(Message::Text((*(message.clone())).to_string())).unwrap();

@@ -23,8 +23,9 @@ pub struct Broad_Cast_Message {
 }
 //party_id : &str, 
 pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Value,mut party_id :  &Value, mut party_count : &Value, msg : &Value, _s1 : bool) -> Value{
-    println!("in handler initializeParty");
+    //println!("in handler initializeParty");
     let party_id_shadow;
+    let mut party_count_Value;
     {
         let mut unlocked_instance = instance.lock().unwrap();
     
@@ -48,7 +49,7 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
     // } else {
     //     party_count_u64 = party_count.as_u64().unwrap();
     // }
-    let mut party_count_Value;
+    ;
     if *party_count == Value::Null {
         //let instance_mg = instance.lock().unwrap();
         party_count_Value = unlocked_instance.computationMaps.maxCount[computation_id.to_string()].clone();
@@ -98,11 +99,12 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
     } else{ // generate spare party_id
         
         party_id_shadow = json!(unlocked_instance.computationMaps.spareIds.get(&computation_id.to_string()).unwrap().create_free().unwrap());
+        //println!("{:?}", party_id_shadow);
     }
 
     // All is good: begin initialization
     // reserve id
-    if party_id != "s1" {
+    if party_id_shadow != "s1" {
         unlocked_instance.computationMaps.spareIds.get_mut(&computation_id.to_string()).unwrap().reserve(party_id_shadow.as_u64().unwrap());
     }
 
@@ -115,10 +117,10 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
     
     // Finally: create return initialization message to the client
     let keymap_to_send = storeAndSendPublicKey(instance.clone(), &computation_id, &party_id_shadow, &msg);
-    println!("after store");
+    //println!("after store");
     let message = json!({
-        "party_id": party_id,
-        "party_count": party_count,
+        "party_id": party_id_shadow,
+        "party_count": party_count_Value,
         "public_keys": keymap_to_send,
     });
     //message = jiffServer.hooks.execute_array_hooks('afterInitialization', [jiffServer, computation_id, message], 2);
@@ -130,7 +132,7 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
 
 //store public key in given msg and return serialized public keys
 pub fn storeAndSendPublicKey (instance: Arc<Mutex<restfulAPI>>, computation_id : &Value, party_id : &Value, msg : &Value) -> Value{
-    println!("in storeAndSendPublicKey");
+    //println!("in storeAndSendPublicKey");
     // store public key in key map
     let mut unlocked_instance = instance.lock().unwrap();
     let sodium = unlocked_instance.sodium;
@@ -138,7 +140,7 @@ pub fn storeAndSendPublicKey (instance: Arc<Mutex<restfulAPI>>, computation_id :
     //println!("in storeAndSendPublicKey 1");
     if tmp["s1"] == Value::Null { // generate public and secret key for server if they don't exist
         let genkey = serverHooks::generateKeyPair(sodium);
-        println!("after generateKeyPair 1");
+        //println!("after generateKeyPair 1");
         let secret_key = genkey.1.unwrap();
         unlocked_instance.computationMaps.secretKeys.as_object_mut().unwrap().insert(computation_id.to_string(), json!(secret_key.0.to_vec()));
         let public_key = genkey.0.unwrap();
@@ -147,12 +149,15 @@ pub fn storeAndSendPublicKey (instance: Arc<Mutex<restfulAPI>>, computation_id :
 
     if party_id != "s1" {
         tmp.as_object_mut().unwrap().insert(party_id.to_string(), json!(serverHooks::parseKey(sodium, &msg["public_key"]).unwrap()));
+        //println!("{:?}", tmp);
     }
+    unlocked_instance.computationMaps.keys[computation_id.to_string()] = tmp.clone();  
 
     // Gather and format keys
     let mut keymap_to_send = json!({});
     for (key, _) in tmp.as_object_mut().unwrap() {
         if unlocked_instance.computationMaps.keys[computation_id.to_string()][key] != Value::Null {
+            //println!("jinlai");
             //let mut intance_temp = instance.lock().unwrap();
             let dumped_Key =serverHooks::dumpKey(sodium, &unlocked_instance.computationMaps.keys[computation_id.to_string()][key]);
             
@@ -167,10 +172,13 @@ pub fn storeAndSendPublicKey (instance: Arc<Mutex<restfulAPI>>, computation_id :
     // Send the public keys to all previously connected parties, except the party that caused this update
     //let mut intance_temp = instance.lock().unwrap();
     let mut send_to_parties = unlocked_instance.computationMaps.clientIds[computation_id.to_string()].clone();
+    //println!("{:?}", send_to_parties);
     for receiver in send_to_parties.as_array_mut().unwrap() {
         if receiver != party_id {
+            println!("sadsdadsadsa");
             unlocked_instance.safe_emit(String::from("public_keys"), broadcast_message.clone(), computation_id, receiver);
         }
     }
+    //println!("{:?}", keymap_to_send);
     return keymap_to_send
 }
