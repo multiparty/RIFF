@@ -111,7 +111,7 @@ impl restfulAPI {
                 let body_string = std::str::from_utf8(&full_body[..]).unwrap();
                 let msg: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
-                //println!("{:?}", msg);
+                println!("{:?}", msg);
                 // First: attempt to initialize if needed.
                 let output = restfulAPI::initializeParty(msg.clone(), restful_instance.clone());
                 if !output["success"].as_bool().unwrap() {
@@ -147,7 +147,7 @@ impl restfulAPI {
                 // Execute end hooks
                 //response = jiff.hooks.execute_array_hooks('afterOperation', [jiff, 'poll', computation_id, from_id, response], 4);
                 // Respond back!
-                println!("{:?}", response);
+                println!("{}", response.to_string());
                 Ok(Response::new(Body::from(response.to_string())))
             }
 

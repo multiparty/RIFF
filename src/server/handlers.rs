@@ -126,7 +126,7 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
     //message = jiffServer.hooks.execute_array_hooks('afterInitialization', [jiffServer, computation_id, message], 2);
     return json!({
         "success": true,
-        "message": message,
+        "message": message.to_string(), //it has to be wrapped to be a string, then being parsed in client.
     })
 }
 
