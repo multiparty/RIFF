@@ -69,6 +69,11 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
     
 
     // Third: Valid parameters via hook
+    let params = json!({
+        "party_id": party_id,
+        "party_count": party_count_Value,
+    });
+    serverHooks::beforeInitialization(unlocked_instance, computation_id.clone(), params);
 
     // Fourth: Make sure party id is fine.
     // if party_id is given, try to reserve it if free.
@@ -83,9 +88,9 @@ pub fn initializeParty (instance: Arc<Mutex<restfulAPI>>, computation_id : &Valu
     //     party_id_u64 = instance.lock().unwrap().computationMaps.spareIds.get(computation_id).unwrap().create_free().unwrap();
     // }
     //let mut party_id_u64: u64 = 999; //999 means 's1'
-    
+    let mut unlocked_instance = instance.lock().unwrap();
     if *party_id != Value::Null {
-        if party_id != "s1" && !instance.lock().unwrap().computationMaps.spareIds.get(&computation_id.to_string()).unwrap().is_free(party_id.as_u64().unwrap()) {
+        if party_id != "s1" && !unlocked_instance.computationMaps.spareIds.get(&computation_id.to_string()).unwrap().is_free(party_id.as_u64().unwrap()) {
             // ID is not spare, but maybe it has disconnected and trying to reconnect? maybe a mistaken client? maybe malicious?
             // Cannot handle all possible applications logic, rely on hooks to allow developers to inject case-specific logic.
             // try {
