@@ -21,7 +21,9 @@ pub fn put_in_mailbox(riff: &mut restfulAPI , label: String, msg: String, comput
         "label": label,
         "msg": msg,
     }));
-    return computation_mailbox[to_id.to_string()].as_array_mut().unwrap().len() - 1;
+    riff.mail_box[computation_id.to_string()] = computation_mailbox;
+    
+    return riff.mail_box[computation_id.to_string()][to_id.to_string()].as_array_mut().unwrap().len() - 1;
 }
 
 pub fn get_from_mailbox(riff: &mut restfulAPI, computation_id: Value, party_id: Value) -> Vec<Value> {
@@ -45,5 +47,14 @@ pub fn get_from_mailbox(riff: &mut restfulAPI, computation_id: Value, party_id: 
     }
     return result
     
+}
+
+pub fn sliceMailbox (riff: &mut restfulAPI, computation_id: Value, party_id: Value, mailbox_pointer: Value) {
+    if riff.mail_box[computation_id.to_string()] != Value::Null && riff.mail_box[computation_id.to_string()][party_id.to_string()] != Value::Null {
+        let mailbox = &mut riff.mail_box[computation_id.to_string()][party_id.to_string()];
+        let number_pointer = mailbox_pointer.as_u64().unwrap();
+        let sliced_mailbox = mailbox.as_array_mut().unwrap().split_off(number_pointer as usize + 1);
+        riff.mail_box[computation_id.to_string()][party_id.to_string()] = json!(sliced_mailbox);
+    }
 }
 

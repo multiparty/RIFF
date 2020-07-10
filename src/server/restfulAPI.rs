@@ -129,8 +129,10 @@ impl restfulAPI {
                 });
                 let computation_id = msg["computation_id"].clone();
                 let from_id = output["party_id"].clone();
+
                 // Second: free acknowledged tag.
                 //jiff.restful.freeTag(computation_id, from_id, msg['ack']);
+                restful_instance.lock().unwrap().freeTag(computation_id.clone(), from_id.clone(), msg["ack"].clone());
 
                 // Third: handle given messages / operations.
                 //let (receiver_id, msg) =utility::handle_messages(&deserialized, &mut socket_map, addr);
@@ -197,7 +199,7 @@ impl restfulAPI {
     }
 
     pub fn initComputation (&mut self, computation_id: &Value, party_id: &Value, party_count: &Value) {
-        if self.computationMaps.clientIds[computation_id.as_str().unwrap()] == Value::Null {
+        if self.computationMaps.clientIds[computation_id.to_string()] == Value::Null {
             self.computationMaps.clientIds.as_object_mut().unwrap().insert(computation_id.to_string(), json!([]));
             self.computationMaps.maxCount.as_object_mut().unwrap().insert(computation_id.to_string(), party_count.clone());
             self.computationMaps.freeParties.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
@@ -205,8 +207,10 @@ impl restfulAPI {
             self.mail_box.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
  
         }
-        if !self.computationMaps.clientIds[computation_id.to_string()].as_array_mut().unwrap().contains(&party_id) {
+        if !self.computationMaps.clientIds[computation_id.to_string()].as_array_mut().unwrap().contains(party_id) {
+            //println!("push to clinets");
             self.computationMaps.clientIds[computation_id.to_string()].as_array_mut().unwrap().push(party_id.clone());
+            println!("{:?}", self.computationMaps.clientIds[computation_id.to_string()]);
         }
 
         //restful spcific
@@ -264,5 +268,15 @@ impl restfulAPI {
             "ack": json!(tag),
             "messages": json!(messages),
         })
+    }
+
+    pub fn freeTag (&mut self, computation_id: Value, party_id: Value, tag: Value) {
+        if tag != Value::Null && self.maps.pendingMessages[computation_id.to_string()] != Value::Null && self.maps.pendingMessages[computation_id.to_string()][party_id.to_string()] != Value::Null {
+            let pending = self.maps.pendingMessages[computation_id.to_string()][party_id.to_string()].clone();
+            if tag == pending["tag"] {
+                mailbox::sliceMailbox(self, computation_id.clone(), party_id.clone(), pending["store_id"].clone());
+                self.maps.pendingMessages[computation_id.to_string()][party_id.to_string()] = Value::Null;
+            }
+        }
     }
 }
