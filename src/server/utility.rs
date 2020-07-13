@@ -1,25 +1,22 @@
-
 use crate::server::SocketMap;
-use std::net::SocketAddr;
-use tungstenite::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
+use std::net::SocketAddr;
+use tungstenite::Message;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JasonMessage {
     pub tag: String,
-    pub party_id : u32,
-    pub message : String,
+    pub party_id: u32,
+    pub message: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JasonMessage_rest {
     pub messages: Vec<message_rest>,
-    pub initialization : initialization_rest,
-    pub computation_id : String,
+    pub initialization: initialization_rest,
+    pub computation_id: String,
     //pub from_id : u32,
-    
-    
     //pub ack: String,
     //pub additional: String,
 }
@@ -37,7 +34,7 @@ pub struct initialization_rest {
     pub public_key: String,
 }
 
-pub fn handle_messages<'a> (
+pub fn handle_messages<'a>(
     object: &'a JasonMessage,
     socket_map: &mut SocketMap,
     addr: SocketAddr,
@@ -55,7 +52,9 @@ pub fn handle_messages<'a> (
             .unwrap()
             .get_mut(&id)
             .unwrap();
-        cur_websocket.write_message(Message::Text(res.clone())).unwrap();
+        cur_websocket
+            .write_message(Message::Text(res.clone()))
+            .unwrap();
         (id, res)
     //res
     } else if &object.tag[..] == "communicate" {
@@ -66,24 +65,18 @@ pub fn handle_messages<'a> (
             .get_mut(&computation_id)
             .unwrap()
             .iter_mut();
-        let mut res=(0,"error".to_string());
-        for (id,recp) in broadcast_recipients {
+        let mut res = (0, "error".to_string());
+        for (id, recp) in broadcast_recipients {
             if *id == object.party_id {
-                recp.write_message(Message::Text(object.message.clone())).unwrap();
-            
-                res=(*id, object.message.clone());
-                
-            } 
-            
+                recp.write_message(Message::Text(object.message.clone()))
+                    .unwrap();
+
+                res = (*id, object.message.clone());
+            }
         }
         res
-        //(0,"error".to_string())
-        
+    //(0,"error".to_string())
     } else {
-        (0,"error".to_string())
+        (0, "error".to_string())
     }
-    
-    
-    
-    
 }

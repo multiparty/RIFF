@@ -187,3 +187,57 @@ pub fn storeAndSendPublicKey (instance: Arc<Mutex<restfulAPI>>, computation_id :
     //println!("{:?}", keymap_to_send);
     return keymap_to_send
 }
+
+pub fn share(instance: &mut restfulAPI, computation_id : Value, from_id : Value,mut msg : Value) -> Value {
+    //jiffServer.hooks.log(jiffServer, 'share from', computation_id, '-', from_id, ' : ', msg);
+
+    // try {
+    //     msg = jiffServer.hooks.execute_array_hooks('beforeOperation', [jiffServer, 'share', computation_id, from_id, msg], 4);
+    //   } catch (err) {
+    //     return { success: false, error: typeof(err) === 'string' ? err : err.message };
+    //   }
+
+    let to_id = msg["party_id"].clone();
+    msg["party_id"] = from_id.clone();
+
+    //msg = jiffServer.hooks.execute_array_hooks('afterOperation', [jiffServer, 'share', computation_id, from_id, msg], 4);
+
+    instance.safe_emit(String::from("share"), msg.to_string(), &computation_id, &to_id);
+    return json!({
+        "success": true,
+    })
+}
+
+pub fn open(instance: &mut restfulAPI, computation_id : Value, from_id : Value,mut msg : Value) -> Value {
+    
+    let to_id = msg["party_id"].clone();
+    msg["party_id"] = from_id.clone();
+
+    instance.safe_emit(String::from("open"), msg.to_string(), &computation_id, &to_id);
+    return json!({
+        "success": true,
+    })
+}
+
+pub fn free(instance: &mut restfulAPI, computation_id : Value, party_id : Value,mut msg : Value) -> Value {
+    // jiffServer.hooks.log(jiffServer, 'free', computation_id, '-', party_id);
+
+    // try {
+    //   jiffServer.hooks.execute_array_hooks('beforeFree', [jiffServer, computation_id, party_id, msg], -1);
+    // } catch (err) {
+    //   return { success: false, error: typeof(err) === 'string' ? err : err.message };
+    // }
+
+    instance.computationMaps.freeParties[computation_id.to_string()][party_id.to_string()] = json!(true);
+    
+    // free up all resources related to the computation
+    if instance.computationMaps.freeParties[computation_id.to_string()].as_object().unwrap().len() == instance.computationMaps.maxCount[computation_id.to_string()] {
+        instance.freeComputation(computation_id);
+        //jiffServer.hooks.execute_array_hooks('afterFree', [jiffServer, computation_id, party_id, msg], -1);
+    }
+
+    return json!({
+        "success": true,
+    })
+
+}
