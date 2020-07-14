@@ -63,6 +63,7 @@ pub struct restfulAPI {
     pub hooks: serverHooks,
     pub maps: maps,
     pub sodium: bool,
+    pub log: bool,
 }
 
 impl server_trait for restfulAPI {
@@ -105,7 +106,7 @@ impl restfulAPI {
                 let body_string = std::str::from_utf8(&full_body[..]).unwrap();
                 let msg: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
-                println!("Server received: {:?}", msg);
+                restful_instance.lock().unwrap().log(format!("Server received: {:?}", msg));
                 // First: attempt to initialize if needed.
                 let output = restfulAPI::initializeParty(msg.clone(), restful_instance.clone());
                 if !output["success"].as_bool().unwrap() {
@@ -161,7 +162,7 @@ impl restfulAPI {
                 // Execute end hooks
                 //response = jiff.hooks.execute_array_hooks('afterOperation', [jiff, 'poll', computation_id, from_id, response], 4);
                 // Respond back!
-                println!("Server sent: {:?}", response);
+                restful_instance.lock().unwrap().log(format!("Server sent: {:?}", response));
                 Ok(Response::new(Body::from(response.to_string())))
             }
 
@@ -255,10 +256,10 @@ impl restfulAPI {
                 .as_array_mut()
                 .unwrap()
                 .push(party_id.clone());
-            println!(
-                "{:?}",
-                self.computationMaps.clientIds[computation_id.to_string()]
-            );
+            // println!(
+            //     "{:?}",
+            //     self.computationMaps.clientIds[computation_id.to_string()]
+            // );
         }
 
         //restful spcific
@@ -404,5 +405,13 @@ impl restfulAPI {
         return json!({
             "success": true,
         })
+    }
+
+    pub fn log(&self, msg: String) {
+        if self.log {
+            println!("{}", msg);
+        } else {
+
+        }
     }
 }

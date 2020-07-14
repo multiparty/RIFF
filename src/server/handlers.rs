@@ -180,7 +180,7 @@ pub fn storeAndSendPublicKey (instance: Arc<Mutex<restfulAPI>>, computation_id :
     //println!("{:?}", send_to_parties);
     for receiver in send_to_parties.as_array_mut().unwrap() {
         if receiver != party_id {
-            println!("sadsdadsadsa");
+           
             unlocked_instance.safe_emit(String::from("public_keys"), broadcast_message.clone(), computation_id, receiver);
         }
     }
