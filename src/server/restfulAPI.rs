@@ -140,7 +140,7 @@ impl restfulAPI {
                 if !output["success"].as_bool().unwrap() {
                     return Ok(Response::new(Body::from(output.to_string())))
                 }
-                
+
 
                 // Fourth: dump mailbox and encrypt.
                 let dumped = restful_instance
@@ -378,24 +378,18 @@ impl restfulAPI {
             let label = message["label"].clone();
             let payload = message["payload"].clone();
 
-            // Make sure label is legal
-            if label != "share" && label != "open" && label != "custom" && label != "crypto_provider" && label != "free" {
-                return json!({
+            // handle message
+            let output;
+
+            match label.as_str().unwrap() {
+                "open" => output = handlers::open(self, computation_id.clone(), from_id.clone(), payload.clone()),
+                "share" => output = handlers::share(self, computation_id.clone(), from_id.clone(), payload.clone()),
+                "free" => output = handlers::free(self, computation_id.clone(), from_id.clone(), payload.clone()),
+                _ => return json!({
                     "success": false,
                     "label": label.clone(),
                     "error": json!("Unrecognized label"),
                 })
-            }
-
-            // handle message
-            let output;
-            let share = String::from("share");
-            let open = String::from("open");
-            let free = String::from("free");
-            match label.to_string() {
-                share=> output = handlers::share(self, computation_id.clone(), from_id.clone(), payload.clone()),
-                open => output = handlers::open(self, computation_id.clone(), from_id.clone(), payload.clone()),
-                free => output = handlers::free(self, computation_id.clone(), from_id.clone(), payload.clone()),
             }
 
             // Terminate on error
