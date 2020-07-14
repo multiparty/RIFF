@@ -3,7 +3,9 @@ var WebSocket = require('faye-websocket'),
 
 ws.on('open', function (event) {
     console.log('open');
-    ws.send('Clinet3');
+    var msg = {tag: 'connect', party_id: 0 /*signifies who it's addressed to*/ , message: 'Client3'};
+    ws.send(JSON.stringify(msg));
+    //ws.send('Clinet1');
 });
 
 ws.on('message', function (event) {
@@ -17,5 +19,7 @@ ws.on('close', function (event) {
 
 setInterval(function() {
     console.log('trying to send something');
-    ws.send('Clinet3');
+    //ws.send('Clinet4');
+    var msg = {tag: 'communicate', party_id: 2 /*signifies who it's addressed to*/ , message: 'my_message(Clinet3)'};
+    ws.send(JSON.stringify(msg));
 },5000);
