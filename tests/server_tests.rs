@@ -38,7 +38,7 @@ fn open_restfulAPI() {
     let c_map = restfulAPI::computationMaps {clientIds:json!({}), maxCount:json!({}), keys:json!({}), secretKeys:json!({}), freeParties:json!({}), spareIds:HashMap::new()};
     let serverHooks = hooks::serverHooks {};
     let maps = maps {tags: json!({}), pendingMessages: json!({})};
-    let restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: json!({}), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true, log: false};
+    let restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: json!({}), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true, log: false, cryptoMap: json!({})};
     
     //s.on();s
     //restfulAPI.on();

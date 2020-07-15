@@ -241,3 +241,7 @@ pub fn free(instance: &mut restfulAPI, computation_id : Value, party_id : Value,
     })
 
 }
+
+pub fn crypto_provider(instance: &mut restfulAPI, computation_id : Value, party_id : Value,mut msg : Value) -> Value {
+    
+}

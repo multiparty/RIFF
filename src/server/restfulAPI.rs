@@ -64,6 +64,7 @@ pub struct restfulAPI {
     pub maps: maps,
     pub sodium: bool,
     pub log: bool,
+    pub cryptoMap: Value, // { computation_id -> { op_id -> { party_id -> { 'shares': [ numeric shares for this party ], 'values': <any non-secret value(s) for this party> } } } }
 }
 
 impl server_trait for restfulAPI {
@@ -245,6 +246,7 @@ impl restfulAPI {
                 .as_object_mut()
                 .unwrap()
                 .insert(computation_id.to_string(), json!({}));
+            self.cryptoMap.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
         }
         if !self.computationMaps.clientIds[computation_id.to_string()]
             .as_array_mut()
@@ -294,6 +296,7 @@ impl restfulAPI {
         self.mail_box.as_object_mut().unwrap().remove(&computation_id.to_string());
         self.maps.tags.as_object_mut().unwrap().remove(&computation_id.to_string());
         self.maps.pendingMessages.as_object_mut().unwrap().remove(&computation_id.to_string());
+        self.cryptoMap.as_object_mut().unwrap().remove(&computation_id.to_string());
 
     }
 
