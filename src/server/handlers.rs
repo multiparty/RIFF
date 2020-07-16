@@ -8,6 +8,8 @@ use sodiumoxide::crypto::box_::PublicKey;
 use sodiumoxide::crypto::box_::SecretKey;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use crate::server::cryptoprovider;
+use crate::client::jiff_compute_shares;
 
 
 use std::{
@@ -243,5 +245,55 @@ pub fn free(instance: &mut restfulAPI, computation_id : Value, party_id : Value,
 }
 
 pub fn crypto_provider(instance: &mut restfulAPI, computation_id : Value, party_id : Value,mut msg : Value) -> Value {
-    
+    // request/generate triplet share
+    let label = msg["label"].clone();
+    let params = msg["params"].clone();
+    let op_id = msg["op_id"].clone();
+    let receivers_list = msg["receivers"].clone();
+    let threshold = msg["threshold"].clone();
+    let Zp = msg["Zp"].clone();
+
+    // Try to find stored result in map, or compute it if it does not exist!
+    let mut result = instance.cryptoMap[computation_id.to_string()][op_id.to_string()].clone();
+    if result == Value::Null {
+        let output;
+        match label.as_str().unwrap() {
+            "triplet" => output = cryptoprovider::CryptoProviderHandlers::triplet(instance, computation_id.clone(), receivers_list.clone(), threshold.clone(), Zp.clone(), params.clone()),
+            "quotient" => output = cryptoprovider::CryptoProviderHandlers::triplet(instance, computation_id.clone(), receivers_list.clone(), threshold.clone(), Zp.clone(), params.clone()),
+            "numbers" => output = cryptoprovider::CryptoProviderHandlers::triplet(instance, computation_id.clone(), receivers_list.clone(), threshold.clone(), Zp.clone(), params.clone()),
+            _ => output = json!({
+                "secrests": Value::Null,
+            })
+        }
+        // Share secrets into plain shares (not secret share objects) and copy values
+        let mut shares = json!({});
+        if output["secrests"] != Value::Null {
+            for receiver in receivers_list.as_array().unwrap() {
+                shares.as_object_mut().unwrap().insert(receiver.clone().to_string(), json!([]));
+            }
+
+            for secret in output["secrets"].as_array().unwrap() {
+                let oneShare = jiff_compute_shares(instance, secret.clone(), receivers_list.clone(), threshold.clone(), Zp.clone());
+                for receiver in receivers_list.as_array().unwrap() {
+                    shares[receiver.to_string()].as_array_mut().unwrap().push(oneShare[receiver.to_string()].clone());
+                }
+            }
+
+
+        }
+
+        // Store result in map
+        result = json!({
+            "values": output["values"],
+            "shares": shares,
+            "markers": json!({}),
+        });
+        instance.cryptoMap[computation_id.to_string()][op_id.to_string()] = result;
+    }
+
+    // construct response
+
+    return json!({
+        "success": true,
+    })
 }

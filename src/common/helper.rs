@@ -2,6 +2,7 @@ use serde_json::Value;
 use sodiumoxide::randombytes::*;
 use sodiumoxide;
 
+use serde_json::json;
 // Secure randomness via rejection sampling.
 pub fn random (max: Value) -> u64 {
     // Use rejection sampling to get random value within bounds
@@ -23,9 +24,9 @@ pub fn random (max: Value) -> u64 {
   sodiumoxide::init(); //thread safety
   loop {
       let randomBytes = randombytes(bytesNeeded as usize);
-      let randomValue = 0;
+      let mut randomValue = 0;
 
-      let i = 0;
+      let mut i = 0;
       while i < bytesNeeded {
           randomValue = randomValue * 256 + (randomBytes[i as usize] as u64);
           i = i + 1;
@@ -38,3 +39,43 @@ pub fn random (max: Value) -> u64 {
   }
 
 }
+
+// transform number to bit array
+pub fn number_to_bits (number: Value, length: Value) -> Vec<Value> {
+  let number = number.as_u64().unwrap();
+  let number = format!("{:b}", number);
+  let mut bits:Vec<Value> = Vec::new();
+  let iterator = number.chars();
+  for bit in iterator { // 1234 4321
+    bits.insert(0, json!(bit.to_digit(2).unwrap()));
+  }
+
+  while length != Value::Null && bits.len() < length.as_u64().unwrap() as usize {
+    bits.push(json!(0));
+  }
+  return bits;
+
+}
+
+// get the party number from the given party_id, the number is used to compute/open shares
+pub fn get_party_number (party_id: Value) -> Value {
+  if party_id.is_number() {
+    return party_id;
+  }
+  if party_id.is_string() && party_id.as_str().unwrap().starts_with("s") {
+    let temp: i64 = party_id.as_str().unwrap()[1..].parse().unwrap();
+    return json!((-1) * temp);
+  }
+  return party_id.as_str().unwrap().parse().unwrap()
+}
+
+// actual mode
+pub fn modF (x: Value, y: Value) -> i64 {
+  let x = x.as_i64().unwrap();
+  let y = y.as_i64().unwrap();
+  if x < 0 {
+    return (x % y) + y
+  }
+  return x % y
+}
+

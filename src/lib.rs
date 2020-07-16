@@ -4,6 +4,9 @@ pub use crate::server::*;
 pub mod common;
 pub use crate::common::*;
 
+pub mod client;
+pub use crate::client::*;
+
 
 // #[cfg(test)]
 // mod tests {
