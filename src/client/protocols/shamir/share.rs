@@ -26,6 +26,7 @@ pub fn jiff_compute_shares (riff: &mut restfulAPI, secret: Value, parties_list: 
     // to interpolate/reconstruct.
     let t = (threshold.as_u64().unwrap() - 1) as usize;
     let mut polynomial = vec![Value::Null; t + 1];
+    
 
     // Each players's random polynomial f must be constructed
     // such that f(0) = secret
@@ -36,20 +37,32 @@ pub fn jiff_compute_shares (riff: &mut restfulAPI, secret: Value, parties_list: 
         polynomial[i] = json!(helper::random(Zp.clone()));
         i = i + 1;
     }
+    //println!{"polynomial: {:?}", polynomial};
 
     // Compute each players share such that share[i] = f(i)
     for party in parties_list.as_array().unwrap() {
         let p_id = party.clone();
+        //println!("party_id: {:?}", p_id);
+        //println!("poly lens: {}", polynomial.len());
         shares.as_object_mut().unwrap().insert(p_id.clone().to_string(), polynomial[0].clone());
         let mut power = helper::get_party_number(p_id.clone());
 
-        let mut j = 1;
-        while j < polynomial.len() {
+        // let mut j = 1;
+        // while j < polynomial.len() {
+        //     let tmp = helper::modF(json!(polynomial[j].as_i64().unwrap() * power.as_i64().unwrap()), Zp.clone());
+        //     let temp_share = shares[p_id.to_string()].as_i64().unwrap();
+        //     shares.as_object_mut().unwrap().insert(p_id.clone().to_string(), json!(helper::modF(json!(temp_share + tmp), Zp.clone())));
+        //     power = json!(helper::modF(json!(power.as_i64().unwrap() * helper::get_party_number(p_id.clone()).as_i64().unwrap()), Zp.clone()));
+        //     println!("power: {:?}", power);
+        //     j = j + 1;
+        // }
+        for j in 1..polynomial.len() {
             let tmp = helper::modF(json!(polynomial[j].as_i64().unwrap() * power.as_i64().unwrap()), Zp.clone());
-            let temp = shares[p_id.to_string()].as_i64().unwrap();
-            shares.as_object_mut().unwrap().insert(p_id.clone().to_string(), json!(helper::modF(json!(temp + tmp), Zp.clone())));
+            let temp_share = shares[p_id.to_string()].as_i64().unwrap();
+            shares.as_object_mut().unwrap().insert(p_id.clone().to_string(), json!(helper::modF(json!(temp_share + tmp), Zp.clone())));
             power = json!(helper::modF(json!(power.as_i64().unwrap() * helper::get_party_number(p_id.clone()).as_i64().unwrap()), Zp.clone()));
-            j = j + 1;
+            //println!("power: {:?}", power);
+             
         }
     }
     return shares

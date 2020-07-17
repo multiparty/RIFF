@@ -389,6 +389,7 @@ impl restfulAPI {
                 "open" => output = handlers::open(self, computation_id.clone(), from_id.clone(), payload.clone()),
                 "share" => output = handlers::share(self, computation_id.clone(), from_id.clone(), payload.clone()),
                 "free" => output = handlers::free(self, computation_id.clone(), from_id.clone(), payload.clone()),
+                "crypto_provider" => output = handlers::crypto_provider(self, computation_id.clone(), from_id.clone(), payload.clone()),
                 _ => return json!({
                     "success": false,
                     "label": label.clone(),

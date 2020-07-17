@@ -42,7 +42,7 @@ impl CryptoProviderHandlers {
         if max == Value::Null {
             max = Zp;
         }
-        if bit.as_bool().unwrap() == true {
+        if !bit.is_null() && bit.as_bool().unwrap() == true {
             max = json!(2);
         }
 
@@ -63,7 +63,7 @@ impl CryptoProviderHandlers {
         }
 
         return json!({
-            "secrests": json!(numbers),
+            "secrets": json!(numbers),
         })
     }
 }
