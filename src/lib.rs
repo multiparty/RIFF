@@ -7,6 +7,13 @@ pub use crate::common::*;
 pub mod client;
 pub use crate::client::*;
 
+pub mod RiffClient;
+pub use crate::RiffClient::*;
+
+pub mod ext;
+pub use crate::ext::*;
+
+
 
 // #[cfg(test)]
 // mod tests {

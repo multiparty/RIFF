@@ -267,7 +267,7 @@ pub fn crypto_provider(instance: &mut restfulAPI, computation_id : Value, from_i
         }
         // Share secrets into plain shares (not secret share objects) and copy values
         let mut shares = json!({});
-        println!("{:?}", output);
+        //println!("{:?}", output);
         if output["secrets"] != Value::Null {
             for receiver in receivers_list.as_array().unwrap() {
                 shares.as_object_mut().unwrap().insert(receiver.clone().to_string(), json!([]));
@@ -275,7 +275,7 @@ pub fn crypto_provider(instance: &mut restfulAPI, computation_id : Value, from_i
 
             for secret in output["secrets"].as_array().unwrap() {
                 let oneShare = jiff_compute_shares(instance, secret.clone(), receivers_list.clone(), threshold.clone(), Zp.clone());
-                println!("{:?}", oneShare);
+                //println!("{:?}", oneShare);
                 for receiver in receivers_list.as_array().unwrap() {
                     shares[receiver.to_string()].as_array_mut().unwrap().push(oneShare[receiver.to_string()].clone());
                 }
