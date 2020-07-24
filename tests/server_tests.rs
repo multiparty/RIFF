@@ -18,31 +18,45 @@ use serde_json::json;
 
 
 
-#[test]
-fn open_websocket() {
-    let mut s = Server{ name: String::from("test_server"), mail_box: HashMap::new()};
-    let this = Arc::new(Mutex::new(s));
-    //s.on();
-    Server::on(this);
-}
 
-#[test]
-fn sodiumTest() {
-    let (ourpk, oursk) = box_::gen_keypair();
-    println!("{:?}", ourpk);
-}
-
-#[test]
 //#[tokio::test]
-fn open_restfulAPI() {
+#[test]
+fn SERVER_restAPI() {
     let c_map = restfulAPI::computationMaps {clientIds:json!({}), maxCount:json!({}), keys:json!({}), secretKeys:json!({}), freeParties:json!({}), spareIds:HashMap::new()};
     let serverHooks = hooks::serverHooks {};
     let maps = maps {tags: json!({}), pendingMessages: json!({})};
     let restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: json!({}), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true, log: false, cryptoMap: json!({})};
-    
+
     //s.on();s
     //restfulAPI.on();
     restfulAPI::restfulAPI::on(Arc::new(Mutex::new(restfulAPI_instance)));
 }
 
 
+/*
+ *#[test]
+ *fn test_server_and_clients() {
+ *    let c_map = restfulAPI::computationMaps {clientIds:json!({}), maxCount:json!({}), keys:json!({}), secretKeys:json!({}), freeParties:json!({}), spareIds:HashMap::new()};
+ *    let serverHooks = hooks::serverHooks {};
+ *    let maps = maps {tags: json!({}), pendingMessages: json!({})};
+ *    let restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: json!({}), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true, log: false, cryptoMap: json!({})};
+ *
+ *    thread::spawn(move || {
+ *                  restfulAPI::restfulAPI::on(Arc::new(Mutex::new(restfulAPI_instance)));
+ *    }
+ *    );
+ *    thread::spawn(move || {
+ *
+ *                  let options = HashMap::new();
+ *                  let myClient = riffClientRest::new(String::from("127.0.0.1:8080"), String::from("test1"), options);
+ *                  let clientAccess = Arc::new(Mutex::new(myClient));
+ *                  riffClientRest::connect(clientAccess, true);
+ *                  let shares = riffClientRest::share(clientAccess, input_value);
+ *                  let result = riffClientRest::open(clientAccess, shares[1]);
+ *
+ *    }
+ *    );
+ *
+ *    thread::sleep(Duration::from_millis(5000));
+ *}
+ */
