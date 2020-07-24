@@ -1,0 +1,85 @@
+
+running 1 test
+test tests::it_works ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 1 test
+test open_websocket ... test open_websocket has been running for over 60 seconds
+
+running 1 test
+test tests::it_works ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 1 test
+test open_websocket ... FAILED
+
+failures:
+
+---- open_websocket stdout ----
+thread 'open_websocket' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 48, kind: AddrInUse, message: "Address already in use" }', src/server/server.rs:44:22
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    open_websocket
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 3 tests
+test sodiumTest ... ok
+test open_websocket ... FAILED
+test open_restfulAPI ... FAILED
+
+failures:
+
+---- open_websocket stdout ----
+thread 'open_websocket' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 48, kind: AddrInUse, message: "Address already in use" }', src/server/server.rs:48:22
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- open_restfulAPI stdout ----
+thread 'open_restfulAPI' panicked at 'error binding to 127.0.0.1:8080: error creating server listener: Address already in use (os error 48)', /Users/peterflockhart/.cargo/registry/src/github.com-1ecc6299db9ec823/hyper-0.13.6/src/server/mod.rs:124:13
+
+
+failures:
+    open_restfulAPI
+    open_websocket
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 3 tests
+test sodiumTest ... ok
+test open_websocket ... FAILED
+test open_restfulAPI ... FAILED
+
+failures:
+
+---- open_websocket stdout ----
+thread 'open_websocket' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 48, kind: AddrInUse, message: "Address already in use" }', src/server/server.rs:48:22
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- open_restfulAPI stdout ----
+thread 'open_restfulAPI' panicked at 'error binding to 127.0.0.1:3001: error creating server listener: Address already in use (os error 48)', /Users/peterflockhart/.cargo/registry/src/github.com-1ecc6299db9ec823/hyper-0.13.6/src/server/mod.rs:124:13
+
+
+failures:
+    open_restfulAPI
+    open_websocket
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out
+

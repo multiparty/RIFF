@@ -26,7 +26,7 @@ pub fn jiff_compute_shares (riff: &mut restfulAPI, secret: Value, parties_list: 
     // to interpolate/reconstruct.
     let t = (threshold.as_u64().unwrap() - 1) as usize;
     let mut polynomial = vec![Value::Null; t + 1];
-    
+
 
     // Each players's random polynomial f must be constructed
     // such that f(0) = secret
@@ -62,7 +62,7 @@ pub fn jiff_compute_shares (riff: &mut restfulAPI, secret: Value, parties_list: 
             shares.as_object_mut().unwrap().insert(p_id.clone().to_string(), json!(helper::modF(json!(temp_share + tmp), Zp.clone())));
             power = json!(helper::modF(json!(power.as_i64().unwrap() * helper::get_party_number(p_id.clone()).as_i64().unwrap()), Zp.clone()));
             //println!("power: {:?}", power);
-             
+
         }
     }
     return shares

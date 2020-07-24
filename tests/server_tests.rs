@@ -1,4 +1,6 @@
 use riff::server::{Server, restfulAPI, hooks, maps};
+use riff::ext::RiffClientRestful::{riffClientRest};
+use riff::ext::RiffClientTrait::*;
 
 
 use std::{
@@ -8,6 +10,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
     thread,
+    time::Duration,
 };
 
 use sodiumoxide::crypto::box_::PublicKey;
