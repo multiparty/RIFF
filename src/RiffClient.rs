@@ -71,7 +71,7 @@ use serde_json::json;
 use serde_json::Value;
 use crate::ext::riffClientRest;
 
-type fn1 = fn(&mut riffClientRest);
+type fn1 = fn(Arc<Mutex<riffClientRest>>);
 #[derive(Clone)]
 pub enum JsonEnum {
     func(fn1),

@@ -30,3 +30,13 @@ pub fn dumpKey (riff: Arc<Mutex<riffClientRest>>) -> String {
         return String::new()
     }
 }
+
+pub fn parseKey(riff: Arc<Mutex<riffClientRest>>, keyString: &Value) -> Option<Vec<u8>> {
+    let instance = riff.lock().unwrap();
+    if instance.sodium_ != false {
+        let array: Vec<u8> = serde_json::from_str(keyString.as_str().unwrap()).unwrap();
+        return Some(array);
+    } else {
+        return None;
+    }
+} 

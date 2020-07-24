@@ -12,6 +12,7 @@ use std::{
     sync::{Arc, Mutex,MutexGuard},
     thread,
 };
+use crate::socket::events;
 
 //Builds the initialization message for this instance
 pub fn build_initialization_message (riff_locked: Arc<Mutex<riffClientRest>>) -> Value{
@@ -41,7 +42,7 @@ pub fn build_initialization_message (riff_locked: Arc<Mutex<riffClientRest>>) ->
     msg
 }
 
-pub fn connected (mut riff: Arc<Mutex<riffClientRest>>) {
+pub fn connected (riff: Arc<Mutex<riffClientRest>>) {
     let mut riff_instance = riff.lock().unwrap();
     //let riff_instance = riff.lock().unwrap();
     riff_instance.initialization_counter += 1;
@@ -72,6 +73,61 @@ pub fn connected (mut riff: Arc<Mutex<riffClientRest>>) {
 
 }
 
-pub fn initialized (riff: &mut riffClientRest, msg: String) {
+pub fn initialized (riff: Arc<Mutex<riffClientRest>>, msg: String) {
+    let mut instance = riff.lock().unwrap();
+    instance.__initialized = true;
+    instance.initialization_counter = 0;
+
+    let msg: Value = serde_json::from_str(msg.as_str()).unwrap();
+
+    instance.id = msg["party_id"].as_i64().unwrap();
+    instance.party_count = msg["party_count"].as_i64().unwrap();
+
+    //jiffClient.socket.resend_mailbox(); do nothing in rest ext
+    std::mem::drop(instance);
+    store_public_keys(riff.clone(), msg["public_keys"].clone());
 
 }
+
+pub fn store_public_keys (riff: Arc<Mutex<riffClientRest>>, keymap: Value) {
+    let mut instance = riff.lock().unwrap();
+    for (key, value) in keymap.as_object().unwrap() {
+        if instance.keymap[key.clone()] == Value::Null {
+            std::mem::drop(instance);
+            let v = hook::parseKey(riff.clone(), &keymap[key.clone()]).unwrap();
+            instance = riff.lock().unwrap();
+            instance.keymap.as_object_mut().unwrap().insert(key.clone(), json!(v));
+        }
+    }
+
+    // Resolve any pending messages that were received before the sender's public key was known
+    std::mem::drop(instance);
+    events::resolve_messages_waiting_for_keys(riff.clone());
+    instance = riff.lock().unwrap();
+
+    // Resolve any pending waits that have satisfied conditions
+    //jiffClient.execute_wait_callbacks();
+
+    // Check if all keys have been received
+    if instance.keymap["s1"] == Value::Null {
+        return 
+    }
+
+    for (key, value) in instance.keymap.as_object().unwrap() {
+        if *value == Value::Null {
+            return
+        }
+    }
+
+    // all parties are connected; execute callback
+    if instance.__ready != true && instance.__initialized {
+        instance.__ready = true;
+        if let Some(data) =  instance.options.clone().get(&String::from("onConnect")) {
+            if let JsonEnum::func(onConnect) = data {
+                std::mem::drop(instance);
+                onConnect(riff.clone());
+            }
+        }
+    }
+
+} 

@@ -12,3 +12,6 @@ pub use self::handlers::*;
 
 pub mod architecture;
 pub use self::architecture::*;
+
+pub mod socket;
+pub use self::socket::*;

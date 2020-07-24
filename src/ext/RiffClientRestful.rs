@@ -35,17 +35,17 @@ pub struct riffClientRest {
     pub hostname: String,
     pub computation_id: String,
     pub options: HashMap<String, JsonEnum>,
-    __ready: bool,
-    __initialized: bool,
+    pub __ready: bool,
+    pub __initialized: bool,
     Zp: i64,
     pub id: i64,
     pub party_count: i64,
     pub sodium_: bool,
-    keymap: Value,
+    pub keymap: Value,
     pub secret_key: Value,
     pub public_key: Value,
     crypto_provider: bool,
-    messagesWaitingKeys: Value,
+    pub messagesWaitingKeys: Value,
     listeners: Value,
     custom_messages_mailbox: Value,
     barriers: Value,
@@ -68,6 +68,7 @@ pub struct riffClientRest {
     mailbox: Mailbox,
     pollInterval: Option<Sender<String>>,
     flushInterval: Option<Sender<String>>,
+    
 }
 
 impl riffClientRest {
@@ -75,7 +76,8 @@ impl riffClientRest {
         let event = event.as_str();
         match event {
             "error" => {}
-            "initialization" => {}
+            "initialization" => initialization::initialized(riff.clone(), msg.clone()),
+            "connect" => initialization::connected(riff.clone()),
             _ => {}
         }
     }
