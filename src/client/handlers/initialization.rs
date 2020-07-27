@@ -31,11 +31,14 @@ pub fn build_initialization_message (riff_locked: Arc<Mutex<riffClientRest>>) ->
         "party_count": riff.party_count,
         "public_key": temp_pubkey,
     });
-    if let JsonEnum::Value(initialization) = riff.options.get(&String::from("initialization")).unwrap() {
-        for (key, value) in initialization.as_object().unwrap() {
-            msg.as_object_mut().unwrap().insert(key.clone(), value.clone());
+    if let Some(data) = riff.options.get(&String::from("initialization")) {
+        if let JsonEnum::Value(initialization) = data {
+            for (key, value) in initialization.as_object().unwrap() {
+                msg.as_object_mut().unwrap().insert(key.clone(), value.clone());
+            }
         }
     }
+    
 
     // Initialization Hook
     //return jiffClient.hooks.execute_array_hooks('beforeOperation', [jiffClient, 'initialization', msg], 2);
@@ -52,6 +55,7 @@ pub fn connected (riff: Arc<Mutex<riffClientRest>>) {
         let key = architecture::generateKeyPair(riff.clone());
         riff_instance = riff.lock().unwrap();
         match key.0 {
+            
             None => riff_instance.public_key = Value::Null,
             Some(publicKey) => riff_instance.public_key = json!(publicKey.0.to_vec()),
         }
@@ -61,6 +65,7 @@ pub fn connected (riff: Arc<Mutex<riffClientRest>>) {
         }
         
     }
+    //println!("{:?}", riff_instance.public_key);
 
     // Initialization message
     std::mem::drop(riff_instance);
@@ -73,14 +78,14 @@ pub fn connected (riff: Arc<Mutex<riffClientRest>>) {
 
 }
 
-pub fn initialized (riff: Arc<Mutex<riffClientRest>>, msg: String) {
+pub fn initialized (riff: Arc<Mutex<riffClientRest>>, msg: Value) {
+    //println!("initialized");
     let mut instance = riff.lock().unwrap();
     instance.__initialized = true;
     instance.initialization_counter = 0;
-
-    let msg: Value = serde_json::from_str(msg.as_str()).unwrap();
-
-    instance.id = msg["party_id"].as_i64().unwrap();
+    //println!("{}", msg.as_str());
+    let msg:Value = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+    instance.id = msg["party_id"].clone();
     instance.party_count = msg["party_count"].as_i64().unwrap();
 
     //jiffClient.socket.resend_mailbox(); do nothing in rest ext

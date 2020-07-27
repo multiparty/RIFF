@@ -105,6 +105,7 @@ impl restfulAPI {
                 let full_body = hyper::body::to_bytes(req.into_body()).await?;
                 //let body = req.into_body();
                 let body_string = std::str::from_utf8(&full_body[..]).unwrap();
+                //println!("{}", body_string);
                 let msg: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
                 restful_instance.lock().unwrap().log(format!("Server received: {:?}", msg));

@@ -30,6 +30,7 @@ use std::{
 };
 
 pub struct riffClientRest {
+    client: reqwest::Client,
     //base_instance: RiffClient,
     //pub options: HashMap<String, JsonEnum>,
     pub hostname: String,
@@ -38,7 +39,7 @@ pub struct riffClientRest {
     pub __ready: bool,
     pub __initialized: bool,
     Zp: i64,
-    pub id: i64,
+    pub id: Value,
     pub party_count: i64,
     pub sodium_: bool,
     pub keymap: Value,
@@ -72,7 +73,7 @@ pub struct riffClientRest {
 }
 
 impl riffClientRest {
-    pub fn execute_listeners(riff: Arc<Mutex<riffClientRest>>, event: String, msg: String) {
+    pub fn execute_listeners(riff: Arc<Mutex<riffClientRest>>, event: String, msg: Value) {
         let event = event.as_str();
         match event {
             "error" => {}
@@ -83,29 +84,54 @@ impl riffClientRest {
     }
     #[tokio::main]
     async fn post(instance: Arc<Mutex<riffClientRest>>, body: Value) -> Result<(), reqwest::Error> {
+        //println!("post!");
         let mut riff = instance.lock().unwrap();
-        riff.hostname.push_str("poll");
+        if riff.hostname.ends_with("poll") {
+
+        } else {
+            riff.hostname.push_str("poll");
+        }
         let hostname = riff.hostname.as_str();
-        let response = reqwest::Client::new()
+        println!("client send: {:?}", body);
+        let response = riff.client
             .post(hostname)
             .json(&body)
             .send()
             .await?;
         std::mem::drop(riff);
-        riffClientRest::restReceive(instance.clone(),response);
+        //println!("postbeforereceive");
+        riffClientRest::restReceive(instance.clone(),response).await?;
         Ok(())
     }
 
     fn restFlush(riff: Arc<Mutex<riffClientRest>>) {
+        //println!("restFlush");
         let mut instance = riff.lock().unwrap();
         if instance.mailbox.pending != Value::Null {
+            //println!("restFlush");
             return;
         }
 
         // Construct request body
         let messages = instance.mailbox.current["messages"].clone();
-        let sliced = &messages.as_array().unwrap()[0..instance.maxBatchSize as usize];
-        let tail = &messages.as_array().unwrap()[instance.maxBatchSize as usize..];
+        let sliced: Vec<Value>;
+        let tail: Vec<Value>;
+        if let Value::Array(messagesArray) = messages {
+            let slice_length;
+            if instance.maxBatchSize as usize > messagesArray.len() {
+                slice_length = messagesArray.len();
+            } else {
+                slice_length = instance.maxBatchSize as usize;
+            }
+            
+            sliced = messagesArray[0..slice_length].to_vec();
+            tail = messagesArray[slice_length..].to_vec();
+        } else {
+            sliced = Vec::new();
+            tail = Vec::new();
+        }
+        // let sliced = sliced.clone();
+        // let tail = tail.clone();
         let body = json!({
             "ack": instance.mailbox.current["ack"],
             "messages": json!(sliced),
@@ -124,8 +150,11 @@ impl riffClientRest {
     }
 
     fn restPoll(riff: Arc<Mutex<riffClientRest>>) {
+        //println!("restPoll!");
         let mut instance = riff.lock().unwrap();
-        if instance.mailbox.pending != Value::Null {
+        //println!("{:?}", instance.mailbox.pending);
+        if instance.mailbox.pending != Value::Null  {
+            //println!("restPoll!");
             return;
         }
 
@@ -150,13 +179,16 @@ impl riffClientRest {
     }
 
     async fn restReceive(riff: Arc<Mutex<riffClientRest>>, response: Response) -> Result<(), reqwest::Error> {
+        //println!("restReceive");
         let mut instance = riff.lock().unwrap();
         if let Err(e) = &response.error_for_status_ref() {
             instance.mailbox.merge_requests();
+            println!("{}",e);
             return Ok(());
         }
 
         let body: Value = response.json().await?;
+        println!("Client received: {:?}", body);
         if !body["success"].as_bool().unwrap() {
             std::mem::drop(instance);
             riffClientRest::execute_listeners(
@@ -166,7 +198,7 @@ impl riffClientRest {
                     "label": body["label"],
                     "error": body["error"],
                 })
-                .to_string(),
+                ,
             );
             return Ok(());
         }
@@ -181,11 +213,13 @@ impl riffClientRest {
             .unwrap()
             .insert(String::from("ack"), body["ack"].clone());
         if body["initialization"] != Value::Null {
+            //println!("before");
             std::mem::drop(instance);
+            //println!("{}",body["initialization"].clone().as_str().unwrap());
             riffClientRest::execute_listeners(
                 riff.clone(),
                 String::from("initialization"),
-                body["initialization"].clone().to_string(),
+                body["initialization"].clone(),
             );
             instance = riff.lock().unwrap();
         }
@@ -193,7 +227,7 @@ impl riffClientRest {
         for i in 0..body["messages"].as_array().unwrap().len() {
             let msg = body["messages"].as_array().unwrap()[i].clone();
             std::mem::drop(instance);
-            riffClientRest::execute_listeners(riff.clone(),msg["label"].to_string(), msg["payload"].clone().to_string());
+            riffClientRest::execute_listeners(riff.clone(),msg["label"].to_string(), msg["payload"].clone());
             instance = riff.lock().unwrap();
         }
         // if (jiff.socket.is_empty() && jiff.socket.empty_deferred != null) {
@@ -203,7 +237,7 @@ impl riffClientRest {
     }
 
     fn setup(instance: Arc<Mutex<riffClientRest>>, immediate: bool) {
-        
+        //println!("setup");
         initialization::connected(instance.clone());
         if immediate != false {
             riffClientRest::restFlush(instance.clone());
@@ -223,6 +257,7 @@ impl riffClientRest {
                 thread::spawn(move || 
                     
                     loop {
+                        //println!("poll!");
                         riffClientRest::restPoll(instance_move.clone());
                         thread::sleep(Duration::from_millis(n as u64));
                         match rx.try_recv() {
@@ -249,7 +284,7 @@ impl riffClientRest {
                 thread::spawn(move || 
                     //let instance = Arc::clone(&instance);
                     loop {
-                        
+                        //println!("flush");
                         riffClientRest::restFlush(instance.clone());
                         thread::sleep(Duration::from_millis(n as u64));
                         match rx.try_recv() {
@@ -323,18 +358,18 @@ impl RiffClientTrait for riffClientRest {
          * The id of this party.
          * @type {number}
          */
-        let mut id_instance = 0;
+        let mut id_instance = Value::Null;
         if let Option::Some(data) = options.get(&String::from("party_id")) {
             if let JsonEnum::Number(id) = data {
-                id_instance = *id;
+                id_instance = json!(*id);
             }
-        }
+        } 
 
         /*
          * Total party count in the computation, parties will take ids between 1 to party_count (inclusive).
          * @type {number}
          */
-        let mut party_count_instance = 0;
+        let mut party_count_instance = 2;
         if let Option::Some(data) = options.get(&String::from("party_count")) {
             if let JsonEnum::Number(party_count) = data {
                 party_count_instance = *party_count;
@@ -372,7 +407,7 @@ impl RiffClientTrait for riffClientRest {
          * @see {@link https://download.libsodium.org/doc/public-key_cryptography/authenticated_encryption.html}
          * @type {?Uint8Array}
          */
-        let mut secretKey_instance = json!([]);
+        let mut secretKey_instance = Value::Null;
         if let Option::Some(data) = options.get(&String::from("secret_key")) {
             if let JsonEnum::Value(secret_key) = data {
                 secretKey_instance = secret_key.clone();
@@ -384,7 +419,7 @@ impl RiffClientTrait for riffClientRest {
          * @see {@link https://download.libsodium.org/doc/public-key_cryptography/authenticated_encryption.html}
          * @type {?Uint8Array}
          */
-        let mut publicKey_instance = json!([]);
+        let mut publicKey_instance = Value::Null;
         if let Option::Some(data) = options.get(&String::from("public_key")) {
             if let JsonEnum::Value(public_key) = data {
                 publicKey_instance = public_key.clone();
@@ -557,10 +592,11 @@ impl RiffClientTrait for riffClientRest {
             handler: json!({}),
             mailbox: Mailbox {
                 current: json!({}),
-                pending: json!({}),
+                pending: Value::Null,
             },
             pollInterval: None,
             flushInterval: None,
+            client: reqwest::Client::new(),
         }
     }
 
@@ -574,7 +610,8 @@ impl RiffClientTrait for riffClientRest {
         if sodium == false {
             riffClientRest::setup(riff.clone(), immediate);
         } else {
-            panic!("sodium library loading failed!")
+            riffClientRest::setup(riff.clone(), immediate);
+            //panic!("sodium library loading failed!")
         }
     }
 

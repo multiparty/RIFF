@@ -30,6 +30,7 @@ impl serverHooks {
 
     pub fn parseKey(sodium: bool, keyString: &Value) -> Option<Vec<u8>> {
         if sodium {
+            //println!("{}",keyString.as_str().unwrap());
             let array: Vec<u8> = serde_json::from_str(keyString.as_str().unwrap()).unwrap();
             return Some(array);
         } else {

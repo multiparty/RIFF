@@ -18,6 +18,7 @@ pub fn generateKeyPair(riff: Arc<Mutex<riffClientRest>>) -> (Option<PublicKey>, 
         let (pub_key, sec_key) = box_::gen_keypair();
         return (Some(pub_key), Some(sec_key));
     } else {
+        
         return (None, None);
     }
 }
