@@ -20,7 +20,7 @@ use std::{
 // use sodiumoxide::crypto::box_;
 
 // use serde_json::json;
-
+use riff::SecretShare::SecretShare;
 
 fn main() {
 
@@ -28,7 +28,14 @@ fn main() {
         options.insert(String::from("sodium"), JsonEnum::Bool(true));
         let my_client = RiffClientRest::new(String::from("http://127.0.0.1:8080"), String::from("test1"), options);
         let client_access = Arc::new(Mutex::new(my_client));
-        RiffClientRest::connect(client_access, true);
+        RiffClientRest::connect(client_access.clone(), true);
+        thread::sleep(Duration::from_secs(3));
+        let mut options_share = HashMap::new();
+        let shares: Vec<SecretShare> = RiffClientRest::share(client_access.clone(), 10, options_share);
+        for sc in shares {
+            println!("{:?}",sc);
+        }
+        
         thread::sleep(Duration::from_secs(100));
         /*
          *let shares = riffClientRest::share(clientAccess, input_value);

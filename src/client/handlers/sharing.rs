@@ -1,6 +1,6 @@
 use serde_json::Value;
 use std::{
-    //collections::HashMap,
+    collections::HashMap,
     sync::{Arc, Mutex},
     //thread,
 };
@@ -31,14 +31,9 @@ pub fn receive_share (riff: Arc<Mutex<RiffClientRest>>,mut msg: Value) {
     let sender_id = msg["party_id"].clone();
     let op_id = msg["op_id"].clone();
     let share = msg["share"].clone();
+    //println!("share_id received: {:?}", op_id);
+    instance.share_map.entry(op_id.as_str().unwrap().to_string()).or_insert(HashMap::new()).insert(sender_id.as_i64().unwrap(), share.as_i64().unwrap());
 
-    // check if a deferred is set up (maybe the share was received early)
-    // if instance.deferreds[op_id.to_string()] == Value::Null {
-    //     instance.deferreds.as_object_mut().unwrap().insert(op_id.to_string(), json!({}));
-    // }
 
-    // if instance.deferreds[op_id.to_string()][sender_id.to_string()] == Value::Null {
-    //     // Share is received before deferred was setup, store it.
 
-    // }
 }

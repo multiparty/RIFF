@@ -25,7 +25,7 @@ use std::{
     thread,
 };
 use crate::SecretShare::SecretShare;
-use futures::lock::Mutex as fMutex;
+use crate::protocols::shamir;
 pub struct RiffClientRest {
     client: reqwest::Client,
     //base_instance: RiffClient,
@@ -309,6 +309,27 @@ impl RiffClientRest {
 }
 
 impl RiffClientTrait for RiffClientRest {
+    fn share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMap<String, JsonEnum>) -> Vec<SecretShare> {
+        let mut instance = riff.lock().unwrap();
+        if secret < 0 {
+            panic!("secret must be a non-negative whole number");
+        }
+        let mut Zp_l: i64 = 0;
+        if let Some(data) = options.get(&String::from("Zp")) {
+            if let JsonEnum::Number(Zp) = data {
+                Zp_l = *Zp;
+            }
+        } else {
+            Zp_l = instance.Zp;
+        }
+        if secret >= Zp_l {
+            panic!("secret must fit inside Zp");
+        }
+        std::mem::drop(instance);
+        return shamir::riff_share(riff.clone(), secret, options);
+        
+    }
+
     fn new(
         hostname: String,
         computation_id: String,

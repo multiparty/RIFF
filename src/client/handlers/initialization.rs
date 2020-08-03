@@ -135,4 +135,5 @@ pub fn store_public_keys (riff: Arc<Mutex<RiffClientRest>>, keymap: Value) {
         }
     }
 
+
 } 

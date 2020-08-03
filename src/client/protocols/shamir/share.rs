@@ -3,7 +3,7 @@ use serde_json::Value;
 use serde_json::json;
 use crate::common::helper;
 use std::{
-    cmp,
+    time::Duration,
     collections::HashMap,
     env,
     io::Error as IoError,
@@ -15,6 +15,7 @@ use crate::RiffClient::JsonEnum;
 use crate::architecture::counters;
 use crate::{RiffClientTrait::RiffClientTrait, architecture::hook};
 use crate::SecretShare::SecretShare;
+
 //use futures::lock::Mutex as fMutex;
 /*
    * Default way of computing shares (can be overridden using hooks).
@@ -82,7 +83,8 @@ pub fn jiff_compute_shares (secret: Value, parties_list: Value, threshold: Value
     return shares
 }
 
-pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMap<String, JsonEnum>) {
+pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMap<String, JsonEnum>) -> Vec<SecretShare> {
+    //print!("shamir");
     let mut instance = riff.lock().unwrap();
     // defaults
     let mut Zp = 0;
@@ -136,7 +138,7 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
     // if party is uninvolved in the share, do nothing
     if let None = receivers_list.iter().position(|&x| x == instance.id) {
         if let None = senders_list.iter().position(|&x| x == instance.id) {
-            return
+            return vec![]
         }
     }
 
@@ -148,6 +150,7 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
         }
     } else {
         std::mem::drop(instance);
+        //println!("share_id");
         share_id = counters::gen_op_id2(riff.clone(), String::from("share"), receivers_list.clone(), senders_list.clone());
         instance = riff.lock().unwrap();
     }
@@ -158,7 +161,7 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
 
         // compute shares
        shares = jiff_compute_shares(json!(secret), json!(receivers_list), json!(threshold), json!(Zp));
-
+       //println!("shares {:?}", shares);
         // send shares
         for receiver in receivers_list.clone() {
             
@@ -169,23 +172,31 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
             // send encrypted and signed shares_id[p_id] to party p_id
             let mut msg = json!({
                 "party_id": receiver,
-                "share": shares[receiver as usize],
+                "share": shares[receiver.to_string()],
                 "op_id": json!(share_id),
             });
+            //println!("ms{:?}", msg["share"]);
             let pubkey = instance.keymap[msg["party_id"].to_string()].clone(); // without ""
+            
+            //println!("{:?}", instance.keymap);
+            //println!("{:?}",msg["party_id"]);
+           // println!("{:?}", pubkey);
             let seckey = instance.secret_key.clone();
             std::mem::drop(instance);
-            let res = hook::encryptSign(riff.clone(), msg.clone(), pubkey, seckey);
+            let res = hook::encryptSign(riff.clone(), msg["share"].clone(), pubkey, seckey);
             instance = riff.lock().unwrap();
             msg.as_object_mut().unwrap().insert(String::from("share"), res);
             std::mem::drop(instance);
             RiffClientRest::emit(riff.clone(), String::from("share"), msg.to_string());
+            
             instance = riff.lock().unwrap();
+            //println!("mailbox: {:?}", instance.mailbox.current["messages"]);
         }
     }
 
     // stage receiving of shares
-    let mut result:HashMap<i64, SecretShare> = HashMap::new();
+    let mut result:Vec<SecretShare> = Vec::new();
+    result.push(SecretShare::new(0, receivers_list.clone(), threshold, Zp));
 
     if let Some(_) = receivers_list.iter().position(|&x| x == instance.id) {
 
@@ -194,12 +205,28 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
 
             if sender == instance.id { // Keep party's own share
                 let my_share = shares[sender.to_string()].clone().as_i64().unwrap();
-                result.insert(sender, SecretShare::new(my_share, receivers_list.clone(), threshold, Zp));
+                result.push(SecretShare::new(my_share, receivers_list.clone(), threshold, Zp));
                 _remaining -= 1;
                 continue;
             }
             //let share_from_other;
-            result.insert(sender, SecretShare::new(0, receivers_list.clone(), threshold, Zp));
+            std::mem::drop(instance);
+            loop {
+                instance = riff.lock().unwrap();
+                //println!("share_id {:?}", share_id);
+                //println!("share_map_loop: {:?}", instance.share_map);
+                if let Some(data) = instance.share_map.get(&share_id) {
+                    println!("share_id {:?}", share_id);
+                    if let Some(share) = data.get(&sender) {
+                        result.push(SecretShare::new(*share, receivers_list.clone(), threshold, Zp));
+                        break;
+                    }
+                }
+                //println!("in loop");
+                std::mem::drop(instance);
+                thread::sleep(Duration::from_secs(1));
+            }
+            
             
             
             //let b = result.get(&sender).unwrap();
@@ -210,13 +237,14 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
         }
 
     }
+    return result;
 
 
 
 }
 
-pub async fn get_share (riff: Arc<Mutex<RiffClientRest>>, op_id: String, sender: i64) -> i64{
-    let instance = riff.lock().unwrap();
-    return *instance.share_map.get(&op_id).unwrap().get(&sender).unwrap()
-}
+// pub async fn get_share (riff: Arc<Mutex<RiffClientRest>>, op_id: String, sender: i64) -> i64{
+//     let instance = riff.lock().unwrap();
+//     return *instance.share_map.get(&op_id).unwrap().get(&sender).unwrap()
+// }
 
