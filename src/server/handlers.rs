@@ -274,7 +274,7 @@ pub fn crypto_provider(instance: &mut restfulAPI, computation_id : Value, from_i
             }
 
             for secret in output["secrets"].as_array().unwrap() {
-                let oneShare = jiff_compute_shares(instance, secret.clone(), receivers_list.clone(), threshold.clone(), Zp.clone());
+                let oneShare = jiff_compute_shares(secret.clone(), receivers_list.clone(), threshold.clone(), Zp.clone());
                 //println!("{:?}", oneShare);
                 for receiver in receivers_list.as_array().unwrap() {
                     shares[receiver.to_string()].as_array_mut().unwrap().push(oneShare[receiver.to_string()].clone());

@@ -15,3 +15,9 @@ pub use self::architecture::*;
 
 pub mod socket;
 pub use self::socket::*;
+
+pub mod RiffClientTrait;
+pub use self::RiffClientTrait::*;
+
+pub mod SecretShare;
+pub use self::SecretShare::*;

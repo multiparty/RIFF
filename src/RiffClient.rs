@@ -69,9 +69,9 @@ use crate::client::util::constants;
 use primes;
 use serde_json::json;
 use serde_json::Value;
-use crate::ext::riffClientRest;
+use crate::ext::RiffClientRest;
 
-type fn1 = fn(Arc<Mutex<riffClientRest>>);
+type fn1 = fn(Arc<Mutex<RiffClientRest>>);
 #[derive(Clone)]
 pub enum JsonEnum {
     func(fn1),
@@ -79,6 +79,7 @@ pub enum JsonEnum {
     Number(i64),
     Bool(bool),
     Value(Value),
+    Array(Vec<i64>),
     Null,
 }
 pub struct RiffClient {

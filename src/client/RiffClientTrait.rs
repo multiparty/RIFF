@@ -11,15 +11,15 @@ use std::{
 use primes;
 use serde_json::json;
 use serde_json::Value;
-use crate::ext::riffClientRest;
+use crate::ext::RiffClientRest;
 pub trait RiffClientTrait {
     fn new (hostname: String,
         computation_id: String,
         options: HashMap<String, JsonEnum>) -> Self ;
     
-    fn connect (riff: Arc<Mutex<riffClientRest>>, immediate: bool);
+    fn connect (riff: Arc<Mutex<RiffClientRest>>, immediate: bool);
 
-    fn emit (riff: Arc<Mutex<riffClientRest>>, label: String, msg: String);
+    fn emit (riff: Arc<Mutex<RiffClientRest>>, label: String, msg: String);
 
     fn disconnect();
 

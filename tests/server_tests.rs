@@ -1,7 +1,6 @@
-use riff::server::{Server, restfulAPI, hooks, maps};
-use riff::ext::RiffClientRestful::{riffClientRest};
-use riff::ext::RiffClientTrait::*;
-
+use riff::ext::RiffClientRestful::RiffClientRest;
+//use riff::ext::RiffClientTrait::*;
+use riff::server::{hooks, maps, restfulAPI, Server};
 
 use std::{
     collections::HashMap,
@@ -13,28 +12,42 @@ use std::{
     time::Duration,
 };
 
+use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::PublicKey;
 use sodiumoxide::crypto::box_::SecretKey;
-use sodiumoxide::crypto::box_;
 
 use serde_json::json;
-
-
-
 
 //#[tokio::test]
 #[test]
 fn SERVER_restAPI() {
-    let c_map = restfulAPI::computationMaps {clientIds:json!({}), maxCount:json!({}), keys:json!({}), secretKeys:json!({}), freeParties:json!({}), spareIds:HashMap::new()};
+    let c_map = restfulAPI::computationMaps {
+        clientIds: json!({}),
+        maxCount: json!({}),
+        keys: json!({}),
+        secretKeys: json!({}),
+        freeParties: json!({}),
+        spareIds: HashMap::new(),
+    };
     let serverHooks = hooks::serverHooks {};
-    let maps = maps {tags: json!({}), pendingMessages: json!({})};
-    let restfulAPI_instance = restfulAPI::restfulAPI{ mail_box: json!({}), computationMaps: c_map, hooks: serverHooks, maps:maps, sodium: true, log: true, cryptoMap: json!({})};
+    let maps = maps {
+        tags: json!({}),
+        pendingMessages: json!({}),
+    };
+    let restfulAPI_instance = restfulAPI::restfulAPI {
+        mail_box: json!({}),
+        computationMaps: c_map,
+        hooks: serverHooks,
+        maps: maps,
+        sodium: true,
+        log: true,
+        cryptoMap: json!({}),
+    };
 
     //s.on();s
     //restfulAPI.on();
     restfulAPI::restfulAPI::on(Arc::new(Mutex::new(restfulAPI_instance)));
 }
-
 
 /*
  *#[test]

@@ -12,10 +12,10 @@ use std::{
     sync::{Arc, Mutex,MutexGuard},
     thread,
 };
-use crate::socket::events;
+use crate::handlers::events;
 
 //Builds the initialization message for this instance
-pub fn build_initialization_message (riff_locked: Arc<Mutex<riffClientRest>>) -> Value{
+pub fn build_initialization_message (riff_locked: Arc<Mutex<RiffClientRest>>) -> Value{
     let mut riff = riff_locked.lock().unwrap();
     let temp_pubkey;
     if riff.public_key != Value::Null {
@@ -45,7 +45,7 @@ pub fn build_initialization_message (riff_locked: Arc<Mutex<riffClientRest>>) ->
     msg
 }
 
-pub fn connected (riff: Arc<Mutex<riffClientRest>>) {
+pub fn connected (riff: Arc<Mutex<RiffClientRest>>) {
     let mut riff_instance = riff.lock().unwrap();
     //let riff_instance = riff.lock().unwrap();
     riff_instance.initialization_counter += 1;
@@ -74,11 +74,11 @@ pub fn connected (riff: Arc<Mutex<riffClientRest>>) {
 
     // Emit initialization message to server
     std::mem::drop(riff_instance);
-    riffClientRest::emit(riff.clone(),String::from("initialization"), msg.to_string());
+    RiffClientRest::emit(riff.clone(),String::from("initialization"), msg.to_string());
 
 }
 
-pub fn initialized (riff: Arc<Mutex<riffClientRest>>, msg: Value) {
+pub fn initialized (riff: Arc<Mutex<RiffClientRest>>, msg: Value) {
     //println!("initialized");
     let mut instance = riff.lock().unwrap();
     instance.__initialized = true;
@@ -94,7 +94,7 @@ pub fn initialized (riff: Arc<Mutex<riffClientRest>>, msg: Value) {
 
 }
 
-pub fn store_public_keys (riff: Arc<Mutex<riffClientRest>>, keymap: Value) {
+pub fn store_public_keys (riff: Arc<Mutex<RiffClientRest>>, keymap: Value) {
     let mut instance = riff.lock().unwrap();
     for (key, value) in keymap.as_object().unwrap() {
         if instance.keymap[key.clone()] == Value::Null {
