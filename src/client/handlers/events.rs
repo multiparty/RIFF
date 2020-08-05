@@ -14,6 +14,7 @@ use std::{
 };
 use crate::handlers::initialization;
 use crate::handlers::sharing;
+use crate::handlers::crypto_provider;
 
 pub fn handler_public_keys (riff: Arc<Mutex<RiffClientRest>>, msg: Value) {
     let msg:Value = serde_json::from_str(msg.as_str().unwrap()).unwrap();
@@ -39,6 +40,33 @@ pub fn handler_share (riff: Arc<Mutex<RiffClientRest>>, msg: Value) {
             "msg": msg,
         }))
     }
+}
+
+pub fn handler_open (riff: Arc<Mutex<RiffClientRest>>, msg: Value) {
+    // parse message
+    let msg:Value = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+    let sender_id = msg["party_id"].clone();
+
+    let mut instance = riff.lock().unwrap();
+
+    if instance.keymap[sender_id.to_string()] != Value::Null {
+        std::mem::drop(instance);
+        sharing::receive_open(riff.clone(), msg.clone());
+        instance = riff.lock().unwrap();
+    } else {
+        if instance.messagesWaitingKeys[sender_id.to_string()] == Value::Null {
+            instance.messagesWaitingKeys.as_object_mut().unwrap().insert(sender_id.to_string(), json!([]));
+        }
+        instance.messagesWaitingKeys[sender_id.to_string()].as_array_mut().unwrap().push(json!({
+            "label": json!("open"),
+            "msg": msg,
+        }))
+    }
+}
+
+pub fn handler_crypto_provider (riff: Arc<Mutex<RiffClientRest>>, msg: Value) {
+    let msg:Value = serde_json::from_str(msg.as_str().unwrap()).unwrap();
+    crypto_provider::receive_crypto_provider(riff.clone(), msg);
 }
 
 pub fn resolve_messages_waiting_for_keys (riff: Arc<Mutex<RiffClientRest>>) {

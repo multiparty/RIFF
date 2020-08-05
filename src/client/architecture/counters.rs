@@ -42,3 +42,23 @@ pub fn gen_op_id2 (riff: Arc<Mutex<RiffClientRest>>, op: String, receivers: Vec<
     return label
 
 }
+
+pub fn gen_op_id (riff: Arc<Mutex<RiffClientRest>>, op: String, holders: Vec<i64>) -> String {
+    let mut instance = riff.lock().unwrap();
+    let mut label = instance.op_id_seed.clone();
+    label.push_str(op.as_str());
+    label.push_str(":");
+    let str_nums: Vec<String> = holders.iter() 
+        .map(|n| n.to_string())  // map every integer to a string
+        .collect();
+    let str_nums = str_nums.join(",");
+    label.push_str(str_nums.as_str());
+    if instance.op_count[label.clone()] == Value::Null {
+        instance.op_count.as_object_mut().unwrap().insert(label.clone(), json!(0));
+    }
+    let count = instance.op_count[label.clone()].as_i64().unwrap();
+    label.push_str(":");
+    label.push_str(count.to_string().as_str());
+    instance.op_count.as_object_mut().unwrap().insert(label.clone(), json!(count + 1));
+    return label
+}

@@ -14,6 +14,7 @@ use crate::handlers::initialization;
 use crate::mailbox::*;
 use crate::RiffClient::*;
 
+
 use primes;
 use reqwest::Response;
 use serde_json::json;
@@ -51,7 +52,7 @@ pub struct RiffClientRest {
     pub initialization_counter: i64,
     pub extensions: Vec<String>,
     pub protocols: Value,
-    pub preprocessing_table: Value,
+    pub preprocessing_table: HashMap<String, SecretShare>,
     pub preprocessingBatchSize: i64,
     pub preprocessing_function_map: HashMap<String, HashMap<String, JsonEnum>>,
     pub default_preprocessing_protocols: Value,
@@ -70,6 +71,9 @@ pub struct RiffClientRest {
     pub op_count: Value,
     //pub future_map: HashMap<String, HashMap<i64, Arc<fMutex<SecretShare>>>>,
     pub share_map: HashMap<String, HashMap<i64, i64>>,
+    pub crypto_map: HashMap<String, HashMap<String, JsonEnum>>,
+    pub pending_opens: i64,
+    pub open_map: HashMap<String, Vec<Value>>,
     
 }
 
@@ -82,6 +86,8 @@ impl RiffClientRest {
             "connect" => initialization::connected(riff.clone()),
             "public_keys" => events::handler_public_keys(riff.clone(), msg.clone()),
             "share" => events::handler_share(riff.clone(), msg.clone()),
+            "crypto_provider" => events::handler_crypto_provider(riff.clone(), msg.clone()),
+            "open" => events::handler_open(riff.clone(), msg.clone()),
             _ => {}
         }
     }
@@ -328,6 +334,10 @@ impl RiffClientTrait for RiffClientRest {
         std::mem::drop(instance);
         return shamir::riff_share(riff.clone(), secret, options);
         
+    }
+
+    fn open(riff: Arc<Mutex<RiffClientRest>>, share: SecretShare, options: HashMap<String, JsonEnum>) -> Option<i64> {
+        return shamir::riff_open(riff, share, options)
     }
 
     fn new(
@@ -603,7 +613,7 @@ impl RiffClientTrait for RiffClientRest {
             initialization_counter: 0,
             extensions: vec![String::from("base")],
             protocols: protocols_instance,
-            preprocessing_table: json!({}),
+            preprocessing_table: HashMap::new(),
             preprocessingBatchSize: preprocessingBatchSize_instance,
             preprocessing_function_map: HashMap::new(),
             default_preprocessing_protocols: json!({}),
@@ -625,6 +635,9 @@ impl RiffClientTrait for RiffClientRest {
             op_count: json!({}),
             //future_map: HashMap::new(),
             share_map: HashMap::new(),
+            crypto_map: HashMap::new(),
+            pending_opens: 0,
+            open_map: HashMap::new(),
         }
     }
 

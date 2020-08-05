@@ -28,7 +28,7 @@ pub trait RiffClientTrait {
 
     fn share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMap<String, JsonEnum>) -> Vec<SecretShare>;
 
-
+    fn open(riff: Arc<Mutex<RiffClientRest>>, share: SecretShare, options: HashMap<String, JsonEnum>) -> Option<i64>;
 
 
 }

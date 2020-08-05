@@ -21,3 +21,9 @@ pub use self::RiffClientTrait::*;
 
 pub mod SecretShare;
 pub use self::SecretShare::*;
+
+pub mod preprocessing;
+pub use self::preprocessing::*;
+
+pub mod api;
+pub use self::api::*;

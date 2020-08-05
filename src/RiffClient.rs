@@ -70,6 +70,7 @@ use primes;
 use serde_json::json;
 use serde_json::Value;
 use crate::ext::RiffClientRest;
+use crate::SecretShare::SecretShare;
 
 type fn1 = fn(Arc<Mutex<RiffClientRest>>);
 #[derive(Clone)]
@@ -80,6 +81,7 @@ pub enum JsonEnum {
     Bool(bool),
     Value(Value),
     Array(Vec<i64>),
+    ArrayShare(Vec<SecretShare>),
     Null,
 }
 pub struct RiffClient {
