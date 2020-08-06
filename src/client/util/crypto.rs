@@ -61,7 +61,7 @@ pub fn encrypt_and_sign (msg: Value, encryption_public_key: Value, signing_priva
     Public_key.copy_from_slice(temp_array.as_slice());
     let Public_key = box_::PublicKey(Public_key);
 
-    println!("{:?}",signing_private_key);
+    //println!("{:?}",signing_private_key);
     //let secret_key: Vec<u8> = serde_json::from_str(signing_private_key.as_str().unwrap()).unwrap();
     //let nonce = msg["nonce"].as_array().unwrap().to_owned();
     let mut Secret_key = [0; 32];

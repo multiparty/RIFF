@@ -642,18 +642,32 @@ impl RiffClientTrait for RiffClientRest {
     }
 
     fn connect(riff: Arc<Mutex<RiffClientRest>>, immediate: bool) {
+        let mut riff_instance = riff.lock().unwrap();
         let sodium;
-        {
-            let riff_instance = riff.lock().unwrap();
-            sodium = riff_instance.sodium_;
-        }
+        sodium = riff_instance.sodium_;
+        
         
         if sodium == false {
+            std::mem::drop(riff_instance);
             RiffClientRest::setup(riff.clone(), immediate);
+            riff_instance = riff.lock().unwrap();
         } else {
+            std::mem::drop(riff_instance);
             RiffClientRest::setup(riff.clone(), immediate);
+            riff_instance = riff.lock().unwrap();
             //panic!("sodium library loading failed!")
         }
+        std::mem::drop(riff_instance);
+        loop {
+
+            riff_instance = riff.lock().unwrap();
+            if riff_instance.keymap.as_object().unwrap().len() >= (riff_instance.party_count + 1) as usize {
+                break;
+            }
+            std::mem::drop(riff_instance);
+            thread::sleep(Duration::from_secs(1));
+        }
+
     }
 
     fn disconnect() {}

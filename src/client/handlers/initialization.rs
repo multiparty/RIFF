@@ -118,19 +118,26 @@ pub fn store_public_keys (riff: Arc<Mutex<RiffClientRest>>, keymap: Value) {
         return 
     }
 
-    for (key, value) in instance.keymap.as_object().unwrap() {
-        if *value == Value::Null {
-            return
-        }
+    // for (key, value) in instance.keymap.as_object().unwrap() {
+    //     if *value == Value::Null {
+    //         return
+    //     }
+    // }
+    if instance.keymap.as_object_mut().unwrap().len() < (instance.party_count + 1) as usize {
+        return 
     }
+
 
     // all parties are connected; execute callback
     if instance.__ready != true && instance.__initialized {
         instance.__ready = true;
         if let Some(data) =  instance.options.clone().get(&String::from("onConnect")) {
             if let JsonEnum::func(onConnect) = data {
+                println!("in onConnect");
+
                 std::mem::drop(instance);
                 onConnect(riff.clone());
+                //sinstance = riff.lock().unwrap();
             }
         }
     }

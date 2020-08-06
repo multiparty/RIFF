@@ -27,12 +27,13 @@ fn main() {
         let mut options = HashMap::new();
         options.insert(String::from("sodium"), JsonEnum::Bool(true));
         options.insert(String::from("crypto_provider"), JsonEnum::Bool(true));
+        //options.insert(String::from("onConnect"), JsonEnum::func(callback_computation));
         let my_client = RiffClientRest::new(String::from("http://127.0.0.1:8080"), String::from("test1"), options);
         let client_access = Arc::new(Mutex::new(my_client));
         RiffClientRest::connect(client_access.clone(), true);
-        thread::sleep(Duration::from_secs(3));
+        //thread::sleep(Duration::from_secs(7));
         let mut options_share = HashMap::new();
-        let shares: Vec<SecretShare> = RiffClientRest::share(client_access.clone(), 10, options_share);
+        let shares: Vec<SecretShare> = RiffClientRest::share(client_access.clone(), 5, options_share);
         // for sc in shares {
         //     println!("{:?}",sc);
         // }
@@ -46,8 +47,9 @@ fn main() {
         std::mem::drop(clinet_instance);
         let options_open = HashMap::new();
         let result = RiffClientRest::open(client_access.clone(), sum, options_open);
-        clinet_instance = client_access.lock().unwrap();
+        //clinet_instance = client_access.lock().unwrap();
         println!("result: {}", result.unwrap());
+        
         thread::sleep(Duration::from_secs(100));
         /*
          *let shares = riffClientRest::share(clientAccess, input_value);
@@ -55,4 +57,9 @@ fn main() {
          */
 
 
+}
+
+pub fn callback_computation (client_access: Arc<Mutex<RiffClientRest>> ) {
+    //let client_access = riff.lock().unwrap();
+        
 }
