@@ -95,17 +95,19 @@ pub fn riff_open(
             //println!("share_map_loop: {:?}", instance.share_map);
             if let Some(shares) = instance.open_map.get(&op_id) {
                 //println!("op_id {}", op_id);
-                println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
-                println!("shares: {:?}", shares);
+                //println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
+                //println!("shares: {:?}", shares);
                 if shares.len() as i64 == share.threshold  {
+
                     //var recons_secret = jiff.hooks.reconstructShare(jiff, shares);
                     let recons_secret = jiff_lagrange(shares.clone());
+                    instance.open_finished = true;
                     return Some(recons_secret)
                 }
             }
             //println!("in loop");
             std::mem::drop(instance);
-            thread::sleep(Duration::from_secs(1));
+            thread::sleep(Duration::from_millis(100));
         }
     }
     return None

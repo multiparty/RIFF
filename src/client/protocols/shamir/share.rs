@@ -216,7 +216,7 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
 
                 instance = riff.lock().unwrap();
                 //println!("share_id {:?}", share_id);
-                println!("share_map_loop: {:?}", instance.share_map);
+                //println!("share_map_loop: {:?}", instance.share_map);
                 if let Some(data) = instance.share_map.get(&share_id) {
                     println!("share_id {:?}", share_id);
                     if let Some(share) = data.get(&sender) {
@@ -226,7 +226,7 @@ pub fn riff_share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMa
                 }
                 //println!("in loop");
                 std::mem::drop(instance);
-                thread::sleep(Duration::from_secs(1));
+                thread::sleep(Duration::from_millis(100));
             }
             
             

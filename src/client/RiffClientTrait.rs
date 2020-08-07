@@ -22,9 +22,9 @@ pub trait RiffClientTrait {
 
     fn emit (riff: Arc<Mutex<RiffClientRest>>, label: String, msg: String);
 
-    fn disconnect();
+    fn disconnect(riff: Arc<Mutex<RiffClientRest>>);
 
-    fn is_empty(&mut self) -> bool;
+    fn is_empty(riff: Arc<Mutex<RiffClientRest>>) -> bool;
 
     fn share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMap<String, JsonEnum>) -> Vec<SecretShare>;
 

@@ -48,25 +48,6 @@ impl SecretShare {
         }
     }
 
-    pub fn sadd (&self, o: SecretShare) -> SecretShare {
-        if !self.Zp == o.Zp {
-            panic!("shares must belong to the same field (+)");
-        }
-
-        if !(self.holders == o.holders) {
-            panic!("shares must be held by the same parties (+)");
-        }
-        
-        let sum = self.value + o.value;
-        let afterMod = helper::modF(json!(sum), json!(self.Zp));
-        SecretShare {
-            value: afterMod,
-            holders: self.holders.clone(),
-            threshold: cmp::max(self.threshold,o.threshold),
-            Zp: self.Zp,
-        }
-    }
-
     pub fn refresh (&self, riff: Arc<Mutex<RiffClientRest>>, options: HashMap<String, JsonEnum>) -> SecretShare {
         let mut instance = riff.lock().unwrap();
         let mut op_id = String::new();

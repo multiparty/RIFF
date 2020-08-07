@@ -74,6 +74,7 @@ pub struct RiffClientRest {
     pub crypto_map: HashMap<String, HashMap<String, JsonEnum>>,
     pub pending_opens: i64,
     pub open_map: HashMap<String, Vec<Value>>,
+    pub open_finished: bool,
     
 }
 
@@ -638,6 +639,7 @@ impl RiffClientTrait for RiffClientRest {
             crypto_map: HashMap::new(),
             pending_opens: 0,
             open_map: HashMap::new(),
+            open_finished: false,
         }
     }
 
@@ -670,13 +672,23 @@ impl RiffClientTrait for RiffClientRest {
 
     }
 
-    fn disconnect() {}
+    fn disconnect(riff: Arc<Mutex<RiffClientRest>>) {
+        loop {
+            if RiffClientRest::is_empty(riff.clone()) {
+                println!("disconnect");
+                break;
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+    }   
 
-    fn is_empty(&mut self) -> bool {
-        return self.mailbox.pending == Value::Null
-            && self.mailbox.current["initialization"] == Value::Null
-            && self.mailbox.current["messages"].as_array().unwrap().len() == 0
-            && self.counters["pending_opens"].as_i64().unwrap() == 0;
+    fn is_empty(riff: Arc<Mutex<RiffClientRest>>) -> bool {
+        let instance = riff.lock().unwrap();
+        return instance.mailbox.pending == Value::Null
+            && instance.mailbox.current["initialization"] == Value::Null
+            && instance.mailbox.current["messages"].as_array().unwrap().len() == 0
+            && instance.open_finished
+            //&& self.counters["pending_opens"].as_i64().unwrap() == 0;
     }
 
     fn emit(riff: Arc<Mutex<RiffClientRest>>, label: String, msg: String) {
