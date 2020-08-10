@@ -25,6 +25,7 @@ use riff::SecretShare::SecretShare;
 
 fn main() {
         let args: Vec<String> = env::args().collect();
+        //sodiumoxide::init().unwrap();
         let mut options = HashMap::new();
         options.insert(String::from("sodium"), JsonEnum::Bool(true));
         options.insert(String::from("crypto_provider"), JsonEnum::Bool(true));
@@ -44,7 +45,7 @@ fn main() {
         let mut sum = shares[1].clone();
         let mut clinet_instance = client_access.lock().unwrap();
         for i in 2..clinet_instance.party_count + 1 {
-            sum = sum.ssub(shares[i as usize].clone())
+            sum = sum.sadd(shares[i as usize].clone())
         }
         std::mem::drop(clinet_instance);
         let options_open = HashMap::new();

@@ -78,7 +78,7 @@ pub fn encrypt_and_sign (msg: Value, encryption_public_key: Value, signing_priva
     let cipher_string = format!("{:?}", cipher);
 
     return json!({
-        "nonce": json!(nonce_string),
-        "cipher": json!(cipher_string),
+        "nonce": nonce_string,
+        "cipher": cipher_string,
     })
 }
