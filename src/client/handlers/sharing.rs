@@ -4,6 +4,7 @@ use serde_json::Value;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
+    str,
     //thread,
 };
 
@@ -23,17 +24,19 @@ pub fn receive_share(riff: Arc<Mutex<RiffClientRest>>, mut msg: Value) {
         signing_public_key,
     );
     instance = riff.lock().unwrap();
-    let decrpted = decrpted.as_array().unwrap().to_owned();
-    let mut Decrpted = [0; 8];
+    //let decrpted = decrpted.as_array().unwrap().to_owned();
+    let decrpted : i64 = str::from_utf8(&decrpted[..]).unwrap().parse().unwrap();
+    //let d_len = decrpted.len();
+    //let mut Decrpted = [0; 8];
 
-    for i in 0..8 {
-        Decrpted[i] = decrpted[i].as_u64().unwrap() as u8;
-    }
+    //for i in 0..d_len {
+        //Decrpted[i] = decrpted[i].as_u64().unwrap() as u8;
+    //}
 
-    let decrpted_ten_integer: i64 = i64::from_be_bytes(Decrpted);
+    //let decrpted_ten_integer: i64 = i64::from_be_bytes(Decrpted);
     msg.as_object_mut()
         .unwrap()
-        .insert(String::from("share"), json!(decrpted_ten_integer));
+        .insert(String::from("share"), json!(decrpted));
 
     let sender_id = msg["party_id"].clone();
     let op_id = msg["op_id"].clone();
@@ -62,17 +65,18 @@ pub fn receive_open(riff: Arc<Mutex<RiffClientRest>>, mut msg: Value) {
             signing_public_key,
         );
         instance = riff.lock().unwrap();
-        let decrpted = decrpted.as_array().unwrap().to_owned();
-        let mut Decrpted = [0; 8];
+        let decrpted : i64 = str::from_utf8(&decrpted[..]).unwrap().parse().unwrap();
+        // let decrpted = decrpted.as_array().unwrap().to_owned();
+        // let mut Decrpted = [0; 8];
 
-        for i in 0..8 {
-            Decrpted[i] = decrpted[i].as_u64().unwrap() as u8;
-        }
+        // for i in 0..decrpted.len() {
+        //     Decrpted[i] = decrpted[i].as_u64().unwrap() as u8;
+        // }
 
-        let decrpted_ten_integer: i64 = i64::from_be_bytes(Decrpted);
+        // let decrpted_ten_integer: i64 = i64::from_be_bytes(Decrpted);
         msg.as_object_mut()
         .unwrap()
-        .insert(String::from("share"), json!(decrpted_ten_integer));
+        .insert(String::from("share"), json!(decrpted));
     }
 
         let sender_id = msg["party_id"].clone();

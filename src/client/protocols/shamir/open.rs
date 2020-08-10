@@ -176,7 +176,8 @@ pub fn jiff_lagrange (shares: Vec<Value>) -> i64 {
     let mut recons_secret = 0;
     for share in shares.clone() {
         let party = helper::get_party_number(share["sender_id"].clone()).as_i64().unwrap();
-        let tmp = helper::modF(json!(share["value"].as_i64().unwrap() * lagrange_coeff[party as usize]), share["Zp"].clone());
+        //let tmp = helper::modF(json!(share["value"].as_i64().unwrap() * lagrange_coeff[party as usize]), share["Zp"].clone());
+        let tmp = helper::modF(json!(share["value"].as_i64().unwrap().wrapping_mul(lagrange_coeff[party as usize])), share["Zp"].clone());
         recons_secret = helper::modF(json!(recons_secret + tmp), share["Zp"].clone());
     }
 

@@ -29,6 +29,7 @@ fn main() {
         let mut options = HashMap::new();
         options.insert(String::from("sodium"), JsonEnum::Bool(true));
         options.insert(String::from("crypto_provider"), JsonEnum::Bool(true));
+        
         //options.insert(String::from("onConnect"), JsonEnum::func(callback_computation));
         let my_client = RiffClientRest::new(String::from("http://127.0.0.1:8080"), String::from("test1"), options);
         let client_access = Arc::new(Mutex::new(my_client));

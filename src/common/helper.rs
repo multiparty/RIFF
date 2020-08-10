@@ -21,7 +21,7 @@ pub fn random (max: Value) -> u64 {
   let maxValue = 256_u64.pow(bytesNeeded);
   
   // Keep trying until we find a random value within bounds
-  sodiumoxide::init(); //thread safety
+   //thread safety
   loop {
       let randomBytes = randombytes(bytesNeeded as usize);
       let mut randomValue = 0;

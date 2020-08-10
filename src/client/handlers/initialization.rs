@@ -86,6 +86,7 @@ pub fn initialized (riff: Arc<Mutex<RiffClientRest>>, msg: Value) {
     //println!("{}", msg.as_str());
     let msg:Value = serde_json::from_str(msg.as_str().unwrap()).unwrap();
     instance.id = msg["party_id"].clone();
+    println!("client id : {} ", instance.id);
     instance.party_count = msg["party_count"].as_i64().unwrap();
 
     //jiffClient.socket.resend_mailbox(); do nothing in rest ext
@@ -100,6 +101,7 @@ pub fn store_public_keys (riff: Arc<Mutex<RiffClientRest>>, keymap: Value) {
         if instance.keymap[key.clone()] == Value::Null {
             std::mem::drop(instance);
             let v = hook::parseKey(riff.clone(), &keymap[key.clone()]).unwrap();
+            //let v = json!([]);
             instance = riff.lock().unwrap();
             instance.keymap.as_object_mut().unwrap().insert(key.clone(), json!(v));
         }

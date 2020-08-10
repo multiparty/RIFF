@@ -247,6 +247,7 @@ impl RiffClientRest {
     }
 
     fn setup(instance: Arc<Mutex<RiffClientRest>>, immediate: bool) {
+        sodiumoxide::init().unwrap();
         //println!("setup");
         initialization::connected(instance.clone());
         if immediate != false {
@@ -264,8 +265,8 @@ impl RiffClientRest {
                 std::mem::drop(unlocked);
                 let (tx, rx) = mpsc::channel();
                 let instance_move = Arc::clone(&instance);
-                thread::spawn(move || 
-                    
+                thread::spawn(move || {
+                    sodiumoxide::init().unwrap();
                     loop {
                         //println!("poll!");
                         RiffClientRest::restPoll(instance_move.clone());
@@ -277,6 +278,7 @@ impl RiffClientRest {
                             }
                             Err(TryRecvError::Empty) => {}
                         }
+                    }
                     }
                  );
                 unlocked = temp_instance.lock().unwrap();
@@ -291,8 +293,8 @@ impl RiffClientRest {
             if n != 0 {
                 let (tx, rx) = mpsc::channel();
                 std::mem::drop(unlocked);
-                thread::spawn(move || 
-                    //let instance = Arc::clone(&instance);
+                thread::spawn(move || {
+                    sodiumoxide::init().unwrap();
                     loop {
                         //println!("flush");
                         RiffClientRest::restFlush(instance.clone());
@@ -305,6 +307,9 @@ impl RiffClientRest {
                             Err(TryRecvError::Empty) => {}
                         }
                     }
+                }
+                    //let instance = Arc::clone(&instance);
+                    
                  );
                 unlocked = temp_instance.lock().unwrap();
                 unlocked.flushInterval = Option::Some(tx);

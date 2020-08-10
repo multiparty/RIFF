@@ -44,14 +44,15 @@ pub fn parseKey(riff: Arc<Mutex<RiffClientRest>>, keyString: &Value) -> Option<V
 } 
 
 //crypto
-pub fn decryptSign (riff: Arc<Mutex<RiffClientRest>>, msg: Value, secret_key: Value, signing_public_key: Value) -> Value {
+pub fn decryptSign (riff: Arc<Mutex<RiffClientRest>>, msg: Value, secret_key: Value, signing_public_key: Value) -> Vec<u8> {
     let instance = riff.lock().unwrap();
-    if instance.sodium_ != false {
+    //if instance.sodium_ != false {
         std::mem::drop(instance);
         return crypto::decrypt_and_sign(riff.clone(), msg, secret_key, signing_public_key)
-    } else {
-        return msg
-    }
+    //}
+    // } else {
+    //     return msg
+    // }
     
 }
 
