@@ -1,7 +1,9 @@
 use crate::architecture::counters;
 use crate::common::helper;
 use crate::ext::RiffClientRest;
+use crate::handlers::sharing;
 use crate::server::restfulAPI::*;
+use crate::util::helpers;
 use crate::RiffClient::JsonEnum;
 use crate::SecretShare::SecretShare;
 use crate::{architecture::hook, RiffClientTrait::RiffClientTrait};
@@ -15,15 +17,13 @@ use std::{
     thread,
     time::Duration,
 };
-use crate::util::helpers;
-use crate::handlers::sharing;
-
 
 pub fn riff_open(
     riff: Arc<Mutex<RiffClientRest>>,
     mut share: SecretShare,
     options: HashMap<String, JsonEnum>,
 ) -> Option<i64> {
+    //println!("riff_open");
     let mut instance = riff.lock().unwrap();
     // Default values
     let mut parties = vec![];
@@ -65,6 +65,7 @@ pub fn riff_open(
 
     // Party is a holder
     if let Some(_) = share.holders.iter().position(|&x| x == instance.id) {
+        //println!("share.holders.iter().position");
         // Call hook
         //share = jiff.hooks.execute_array_hooks('beforeOpen', [jiff, share, parties], 1);
 
@@ -89,20 +90,20 @@ pub fn riff_open(
     if let Some(_) = parties.iter().position(|&x| x == instance.id) {
         std::mem::drop(instance);
         loop {
-            //println!("in open loop");
+            
             instance = riff.lock().unwrap();
+            //println!("{} in open loop", instance.id);
             //println!("share_id {:?}", share_id);
             //println!("share_map_loop: {:?}", instance.share_map);
             if let Some(shares) = instance.open_map.get(&op_id) {
                 //println!("op_id {}", op_id);
                 //println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
                 //println!("shares: {:?}", shares);
-                if shares.len() as i64 == share.threshold  {
-
+                if shares.len() as i64 == share.threshold {
                     //var recons_secret = jiff.hooks.reconstructShare(jiff, shares);
                     let recons_secret = jiff_lagrange(shares.clone());
                     instance.open_finished = true;
-                    return Some(recons_secret)
+                    return Some(recons_secret);
                 }
             }
             //println!("in loop");
@@ -110,7 +111,7 @@ pub fn riff_open(
             thread::sleep(Duration::from_millis(100));
         }
     }
-    return None
+    return None;
 }
 
 pub fn jiff_broadcast(
@@ -119,17 +120,21 @@ pub fn jiff_broadcast(
     parties: Vec<i64>,
     op_id: String,
 ) {
+    println!("in jiff broadcast");
     let mut instance = riff.lock().unwrap();
     for party in parties {
         if party == instance.id {
             //to-do: jiff.handlers.receive_open({ party_id: i, share: share.value, op_id: op_id, Zp: share.Zp });
             std::mem::drop(instance);
-            sharing::receive_open(riff.clone(), json!({
-                "party_id": party,
-                "share": share.value,
-                "op_id": op_id,
-                "Zp": share.Zp,
-            }));
+            sharing::receive_open(
+                riff.clone(),
+                json!({
+                    "party_id": party,
+                    "share": share.value,
+                    "op_id": op_id,
+                    "Zp": share.Zp,
+                }),
+            );
             instance = riff.lock().unwrap();
             continue;
         }
@@ -144,7 +149,12 @@ pub fn jiff_broadcast(
         let pubkey = instance.keymap[msg["party_id"].to_string()].clone();
         let seckey = instance.secret_key.clone();
         std::mem::drop(instance);
-        let after_encrypted = hook::encryptSign(riff.clone(), msg["share"].clone(), pubkey, seckey);
+        let mut after_encrypted =
+            hook::encryptSign(riff.clone(), msg["share"].clone(), pubkey, seckey);
+        if after_encrypted.is_number() {
+            after_encrypted = json!(after_encrypted.as_i64().unwrap().to_string());
+        }
+        //println!("send open! {}", after_encrypted);
         instance = riff.lock().unwrap();
         msg.as_object_mut()
             .unwrap()
@@ -155,19 +165,27 @@ pub fn jiff_broadcast(
     }
 }
 
-pub fn jiff_lagrange (shares: Vec<Value>) -> i64 {
-    let mut lagrange_coeff = vec![0;100];
+pub fn jiff_lagrange(shares: Vec<Value>) -> i64 {
+    let mut lagrange_coeff = vec![0; 100];
     // Compute the Langrange coefficients at 0.
     for share_out in shares.clone() {
-        let pi = helper::get_party_number(share_out["sender_id"].clone()).as_i64().unwrap();
+        let pi = helper::get_party_number(share_out["sender_id"].clone())
+            .as_i64()
+            .unwrap();
         lagrange_coeff[pi as usize] = 1;
 
         for share_in in shares.clone() {
-            let pj = helper::get_party_number(share_in["sender_id"].clone()).as_i64().unwrap();
+            let pj = helper::get_party_number(share_in["sender_id"].clone())
+                .as_i64()
+                .unwrap();
             if pj != pi {
                 let inv = helpers::extended_gcd(pi - pj, share_out["Zp"].as_i64().unwrap()).0;
-                lagrange_coeff[pi as usize] = helper::modF(json!(lagrange_coeff[pi as usize] * (0 - pj)), share_out["Zp"].clone()) * inv;
-                lagrange_coeff[pi as usize] = helper::modF(json!(lagrange_coeff[pi as usize]), share_out["Zp"].clone());
+                lagrange_coeff[pi as usize] = helper::modF(
+                    json!(lagrange_coeff[pi as usize] * (0 - pj)),
+                    share_out["Zp"].clone(),
+                ) * inv;
+                lagrange_coeff[pi as usize] =
+                    helper::modF(json!(lagrange_coeff[pi as usize]), share_out["Zp"].clone());
             }
         }
     }
@@ -175,11 +193,22 @@ pub fn jiff_lagrange (shares: Vec<Value>) -> i64 {
     // Reconstruct the secret via Lagrange interpolation
     let mut recons_secret = 0;
     for share in shares.clone() {
-        let party = helper::get_party_number(share["sender_id"].clone()).as_i64().unwrap();
-        //let tmp = helper::modF(json!(share["value"].as_i64().unwrap() * lagrange_coeff[party as usize]), share["Zp"].clone());
-        let tmp = helper::modF(json!(share["value"].as_i64().unwrap().wrapping_mul(lagrange_coeff[party as usize])), share["Zp"].clone());
+        let party = helper::get_party_number(share["sender_id"].clone())
+            .as_i64()
+            .unwrap();
+        let tmp = helper::modF(
+            json!(share["value"].as_i64().unwrap() * lagrange_coeff[party as usize]),
+            share["Zp"].clone(),
+        );
+        // let tmp = helper::modF(
+        //     json!(share["value"]
+        //         .as_i64()
+        //         .unwrap()
+        //         .wrapping_mul(lagrange_coeff[party as usize])),
+        //     share["Zp"].clone(),
+        // );
         recons_secret = helper::modF(json!(recons_secret + tmp), share["Zp"].clone());
     }
 
-    return recons_secret
+    return recons_secret;
 }

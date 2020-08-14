@@ -6,7 +6,7 @@
  */
 #![allow(non_snake_case)]
 use crate::handlers::events;
-use std::sync::mpsc::{self, TryRecvError, Sender, Receiver};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 // Import week days and WeekDay
 use crate::client::util::constants;
 use crate::client::RiffClientTrait::*;
@@ -14,7 +14,8 @@ use crate::handlers::initialization;
 use crate::mailbox::*;
 use crate::RiffClient::*;
 
-
+use crate::protocols::shamir;
+use crate::SecretShare::SecretShare;
 use primes;
 use reqwest::Response;
 use serde_json::json;
@@ -25,8 +26,6 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use crate::SecretShare::SecretShare;
-use crate::protocols::shamir;
 pub struct RiffClientRest {
     client: reqwest::Client,
     //base_instance: RiffClient,
@@ -75,7 +74,6 @@ pub struct RiffClientRest {
     pub pending_opens: i64,
     pub open_map: HashMap<String, Vec<Value>>,
     pub open_finished: bool,
-    
 }
 
 impl RiffClientRest {
@@ -97,20 +95,15 @@ impl RiffClientRest {
         //println!("post!");
         let mut riff = instance.lock().unwrap();
         if riff.hostname.ends_with("poll") {
-
         } else {
             riff.hostname.push_str("poll");
         }
         let hostname = riff.hostname.as_str();
-        println!("client send: {:?}", body);
-        let response = riff.client
-            .post(hostname)
-            .json(&body)
-            .send()
-            .await?;
+        //println!("client send: {:?}", body);
+        let response = riff.client.post(hostname).json(&body).send().await?;
         std::mem::drop(riff);
         //println!("postbeforereceive");
-        RiffClientRest::restReceive(instance.clone(),response).await?;
+        RiffClientRest::restReceive(instance.clone(), response).await?;
         Ok(())
     }
 
@@ -133,7 +126,7 @@ impl RiffClientRest {
             } else {
                 slice_length = instance.maxBatchSize as usize;
             }
-            
+
             sliced = messagesArray[0..slice_length].to_vec();
             tail = messagesArray[slice_length..].to_vec();
         } else {
@@ -163,7 +156,7 @@ impl RiffClientRest {
         //println!("restPoll!");
         let mut instance = riff.lock().unwrap();
         //println!("{:?}", instance.mailbox.pending);
-        if instance.mailbox.pending != Value::Null  {
+        if instance.mailbox.pending != Value::Null {
             //println!("restPoll!");
             return;
         }
@@ -188,17 +181,20 @@ impl RiffClientRest {
         RiffClientRest::post(riff.clone(), body);
     }
 
-    async fn restReceive(riff: Arc<Mutex<RiffClientRest>>, response: Response) -> Result<(), reqwest::Error> {
+    async fn restReceive(
+        riff: Arc<Mutex<RiffClientRest>>,
+        response: Response,
+    ) -> Result<(), reqwest::Error> {
         //println!("restReceive");
         let mut instance = riff.lock().unwrap();
         if let Err(e) = &response.error_for_status_ref() {
             instance.mailbox.merge_requests();
-            println!("{}",e);
+            println!("{}", e);
             return Ok(());
         }
 
         let body: Value = response.json().await?;
-        println!("Client received: {:?}", body);
+        //println!("Client received: {:?}", body);
         if !body["success"].as_bool().unwrap() {
             std::mem::drop(instance);
             RiffClientRest::execute_listeners(
@@ -207,8 +203,7 @@ impl RiffClientRest {
                 json!({
                     "label": body["label"],
                     "error": body["error"],
-                })
-                ,
+                }),
             );
             return Ok(());
         }
@@ -217,7 +212,8 @@ impl RiffClientRest {
         instance.mailbox.pending = Value::Null;
 
         // handle ack, initialization, and remaining messages
-        instance.mailbox
+        instance
+            .mailbox
             .current
             .as_object_mut()
             .unwrap()
@@ -237,7 +233,11 @@ impl RiffClientRest {
         for i in 0..body["messages"].as_array().unwrap().len() {
             let msg = body["messages"].as_array().unwrap()[i].clone();
             std::mem::drop(instance);
-            RiffClientRest::execute_listeners(riff.clone(),msg["label"].as_str().unwrap().to_string(), msg["payload"].clone());
+            RiffClientRest::execute_listeners(
+                riff.clone(),
+                msg["label"].as_str().unwrap().to_string(),
+                msg["payload"].clone(),
+            );
             instance = riff.lock().unwrap();
         }
         // if (jiff.socket.is_empty() && jiff.socket.empty_deferred != null) {
@@ -253,13 +253,12 @@ impl RiffClientRest {
         if immediate != false {
             RiffClientRest::restFlush(instance.clone());
         }
-        
+
         let temp_instance = instance.clone();
         let mut unlocked = temp_instance.lock().unwrap();
         // Run poll and flush periodically.
 
         if let JsonEnum::Number(n) = unlocked.options.get(&String::from("pollInterval")).unwrap() {
-            
             let n = *n;
             if n != 0 {
                 std::mem::drop(unlocked);
@@ -279,8 +278,7 @@ impl RiffClientRest {
                             Err(TryRecvError::Empty) => {}
                         }
                     }
-                    }
-                 );
+                });
                 unlocked = temp_instance.lock().unwrap();
                 unlocked.pollInterval = Some(tx);
             } else {
@@ -288,29 +286,32 @@ impl RiffClientRest {
             }
         }
 
-        if let JsonEnum::Number(n) = unlocked.options.get(&String::from("flushInterval")).unwrap() {
+        if let JsonEnum::Number(n) = unlocked
+            .options
+            .get(&String::from("flushInterval"))
+            .unwrap()
+        {
             let n = *n;
             if n != 0 {
                 let (tx, rx) = mpsc::channel();
                 std::mem::drop(unlocked);
-                thread::spawn(move || {
-                    sodiumoxide::init().unwrap();
-                    loop {
-                        //println!("flush");
-                        RiffClientRest::restFlush(instance.clone());
-                        thread::sleep(Duration::from_millis(n as u64));
-                        match rx.try_recv() {
-                            Ok(_) | Err(TryRecvError::Disconnected) => {
-                                println!("Terminating.");
-                                break;
+                thread::spawn(
+                    move || {
+                        sodiumoxide::init().unwrap();
+                        loop {
+                            //println!("flush");
+                            RiffClientRest::restFlush(instance.clone());
+                            thread::sleep(Duration::from_millis(n as u64));
+                            match rx.try_recv() {
+                                Ok(_) | Err(TryRecvError::Disconnected) => {
+                                    println!("Terminating.");
+                                    break;
+                                }
+                                Err(TryRecvError::Empty) => {}
                             }
-                            Err(TryRecvError::Empty) => {}
                         }
-                    }
-                }
-                    //let instance = Arc::clone(&instance);
-                    
-                 );
+                    }, //let instance = Arc::clone(&instance);
+                );
                 unlocked = temp_instance.lock().unwrap();
                 unlocked.flushInterval = Option::Some(tx);
             } else {
@@ -321,7 +322,11 @@ impl RiffClientRest {
 }
 
 impl RiffClientTrait for RiffClientRest {
-    fn share(riff: Arc<Mutex<RiffClientRest>>, secret: i64, options: HashMap<String, JsonEnum>) -> Vec<SecretShare> {
+    fn share(
+        riff: Arc<Mutex<RiffClientRest>>,
+        secret: i64,
+        options: HashMap<String, JsonEnum>,
+    ) -> Vec<SecretShare> {
         let mut instance = riff.lock().unwrap();
         if secret < 0 {
             panic!("secret must be a non-negative whole number");
@@ -339,11 +344,14 @@ impl RiffClientTrait for RiffClientRest {
         }
         std::mem::drop(instance);
         return shamir::riff_share(riff.clone(), secret, options);
-        
     }
 
-    fn open(riff: Arc<Mutex<RiffClientRest>>, share: SecretShare, options: HashMap<String, JsonEnum>) -> Option<i64> {
-        return shamir::riff_open(riff, share, options)
+    fn open(
+        riff: Arc<Mutex<RiffClientRest>>,
+        share: SecretShare,
+        options: HashMap<String, JsonEnum>,
+    ) -> Option<i64> {
+        return shamir::riff_open(riff, share, options);
     }
 
     fn new(
@@ -403,7 +411,7 @@ impl RiffClientTrait for RiffClientRest {
             if let JsonEnum::Number(id) = data {
                 id_instance = json!(*id);
             }
-        } 
+        }
 
         /*
          * Total party count in the computation, parties will take ids between 1 to party_count (inclusive).
@@ -652,8 +660,7 @@ impl RiffClientTrait for RiffClientRest {
         let mut riff_instance = riff.lock().unwrap();
         let sodium;
         sodium = riff_instance.sodium_;
-        
-        
+
         if sodium == false {
             std::mem::drop(riff_instance);
             RiffClientRest::setup(riff.clone(), immediate);
@@ -666,34 +673,41 @@ impl RiffClientTrait for RiffClientRest {
         }
         std::mem::drop(riff_instance);
         loop {
-
             riff_instance = riff.lock().unwrap();
-            if riff_instance.keymap.as_object().unwrap().len() >= (riff_instance.party_count + 1) as usize {
+            if riff_instance.keymap.as_object().unwrap().len()
+                >= (riff_instance.party_count + 1) as usize
+            {
                 break;
             }
             std::mem::drop(riff_instance);
             thread::sleep(Duration::from_secs(1));
         }
-
     }
 
     fn disconnect(riff: Arc<Mutex<RiffClientRest>>) {
         loop {
             if RiffClientRest::is_empty(riff.clone()) {
                 println!("disconnect");
+                let instance = riff.lock().unwrap();
+                instance.pollInterval.as_ref().unwrap().send(String::from("stop")).unwrap();
+                instance.flushInterval.as_ref().unwrap().send(String::from("stop")).unwrap();
                 break;
             }
             thread::sleep(Duration::from_millis(100));
         }
-    }   
+    }
 
     fn is_empty(riff: Arc<Mutex<RiffClientRest>>) -> bool {
         let instance = riff.lock().unwrap();
         return instance.mailbox.pending == Value::Null
             && instance.mailbox.current["initialization"] == Value::Null
-            && instance.mailbox.current["messages"].as_array().unwrap().len() == 0
-            && instance.open_finished
-            //&& self.counters["pending_opens"].as_i64().unwrap() == 0;
+            && instance.mailbox.current["messages"]
+                .as_array()
+                .unwrap()
+                .len()
+                == 0
+            && instance.open_finished;
+        //&& self.counters["pending_opens"].as_i64().unwrap() == 0;
     }
 
     fn emit(riff: Arc<Mutex<RiffClientRest>>, label: String, msg: String) {

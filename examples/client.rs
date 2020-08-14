@@ -29,6 +29,7 @@ fn main() {
         let mut options = HashMap::new();
         options.insert(String::from("sodium"), JsonEnum::Bool(true));
         options.insert(String::from("crypto_provider"), JsonEnum::Bool(true));
+        options.insert(String::from("party_count"), JsonEnum::Number(3));
         
         //options.insert(String::from("onConnect"), JsonEnum::func(callback_computation));
         let my_client = RiffClientRest::new(String::from("http://127.0.0.1:8080"), String::from("test1"), options);
@@ -46,8 +47,16 @@ fn main() {
         let mut sum = shares[1].clone();
         let mut clinet_instance = client_access.lock().unwrap();
         for i in 2..clinet_instance.party_count + 1 {
-            sum = sum.sadd(shares[i as usize].clone())
+            sum = sum.sadd(shares[i as usize].clone());
         }
+
+        //cadd
+        // let mut sum = shares[1].clone();
+        // let mut clinet_instance = client_access.lock().unwrap();
+        // for i in 2..clinet_instance.party_count + 1 {
+            
+        // }
+
         std::mem::drop(clinet_instance);
         let options_open = HashMap::new();
         let result = RiffClientRest::open(client_access.clone(), sum, options_open);
