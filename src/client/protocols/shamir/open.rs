@@ -60,8 +60,10 @@ pub fn riff_open(
             parties.clone(),
             share.holders.clone(),
         );
+        println!("gen_op_id2: {}", op_id);
         instance = riff.lock().unwrap();
     }
+    println!("op_id in open: {}", op_id);
 
     // Party is a holder
     if let Some(_) = share.holders.iter().position(|&x| x == instance.id) {
@@ -88,6 +90,7 @@ pub fn riff_open(
 
     // Party is a receiver
     if let Some(_) = parties.iter().position(|&x| x == instance.id) {
+        instance.open_finished = false;
         std::mem::drop(instance);
         loop {
             
@@ -97,12 +100,13 @@ pub fn riff_open(
             //println!("share_map_loop: {:?}", instance.share_map);
             if let Some(shares) = instance.open_map.get(&op_id) {
                 //println!("op_id {}", op_id);
-                //println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
+                println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
                 //println!("shares: {:?}", shares);
                 if shares.len() as i64 == share.threshold {
                     //var recons_secret = jiff.hooks.reconstructShare(jiff, shares);
                     let recons_secret = jiff_lagrange(shares.clone());
                     instance.open_finished = true;
+                    instance.open_map.remove(&op_id);
                     return Some(recons_secret);
                 }
             }

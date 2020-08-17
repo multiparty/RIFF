@@ -99,7 +99,7 @@ impl RiffClientRest {
             riff.hostname.push_str("poll");
         }
         let hostname = riff.hostname.as_str();
-        //println!("client send: {:?}", body);
+        println!("client send: {:?}", body);
         let response = riff.client.post(hostname).json(&body).send().await?;
         std::mem::drop(riff);
         //println!("postbeforereceive");
@@ -194,7 +194,7 @@ impl RiffClientRest {
         }
 
         let body: Value = response.json().await?;
-        //println!("Client received: {:?}", body);
+        println!("Client received: {:?}", body);
         if !body["success"].as_bool().unwrap() {
             std::mem::drop(instance);
             RiffClientRest::execute_listeners(

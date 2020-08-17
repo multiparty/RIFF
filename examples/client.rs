@@ -32,7 +32,7 @@ fn main() {
         options.insert(String::from("party_count"), JsonEnum::Number(3));
         
         //options.insert(String::from("onConnect"), JsonEnum::func(callback_computation));
-        let my_client = RiffClientRest::new(String::from("http://127.0.0.1:8080"), String::from("test1"), options);
+        let my_client = RiffClientRest::new(String::from("http://127.0.0.1:3001"), String::from("test1"), options);
         let client_access = Arc::new(Mutex::new(my_client));
         RiffClientRest::connect(client_access.clone(), true);
         //thread::sleep(Duration::from_secs(7));
@@ -44,12 +44,20 @@ fn main() {
         // }
 
         //compute sadd
-        let mut sum = shares[1].clone();
+        // let mut sum = shares[1].clone();
+        // let mut clinet_instance = client_access.lock().unwrap();
+        // for i in 2..clinet_instance.party_count + 1 {
+        //     sum = sum.sadd(shares[i as usize].clone());
+        // }
+
+        //smult
+        let mut product = shares[1].clone();
         let mut clinet_instance = client_access.lock().unwrap();
         for i in 2..clinet_instance.party_count + 1 {
-            sum = sum.sadd(shares[i as usize].clone());
+            std::mem::drop(clinet_instance);
+            product = product.smult(shares[i as usize].clone(), None,client_access.clone());
+            clinet_instance = client_access.lock().unwrap();
         }
-
         //cadd
         // let mut sum = shares[1].clone();
         // let mut clinet_instance = client_access.lock().unwrap();
@@ -59,7 +67,8 @@ fn main() {
 
         std::mem::drop(clinet_instance);
         let options_open = HashMap::new();
-        let result = RiffClientRest::open(client_access.clone(), sum, options_open);
+        println!("before final open");
+        let result = RiffClientRest::open(client_access.clone(), product, options_open);
         //clinet_instance = client_access.lock().unwrap();
         println!("result: {}", result.unwrap());
         RiffClientRest::disconnect(client_access.clone());
