@@ -74,12 +74,10 @@ pub fn gen_op_id(riff: Arc<Mutex<RiffClientRest>>, op: String, holders: Vec<i64>
             .insert(label.clone(), json!(0));
     }
     let count = instance.op_count[label.clone()].as_i64().unwrap();
+    instance.op_count.as_object_mut().unwrap().insert(label.clone(), json!(count + 1));
     label.push_str(":");
     label.push_str(count.to_string().as_str());
-    instance
-        .op_count
-        .as_object_mut()
-        .unwrap()
-        .insert(label.clone(), json!(count + 1));
+    
+    //println!("op_id generated: {}", label);
     return label;
 }

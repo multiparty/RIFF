@@ -32,7 +32,7 @@ fn main() {
         options.insert(String::from("party_count"), JsonEnum::Number(3));
         
         //options.insert(String::from("onConnect"), JsonEnum::func(callback_computation));
-        let my_client = RiffClientRest::new(String::from("http://127.0.0.1:3001"), String::from("test1"), options);
+        let my_client = RiffClientRest::new(String::from("http://127.0.0.1:8080"), String::from("test1"), options);
         let client_access = Arc::new(Mutex::new(my_client));
         RiffClientRest::connect(client_access.clone(), true);
         //thread::sleep(Duration::from_secs(7));

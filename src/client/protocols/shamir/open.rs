@@ -100,13 +100,13 @@ pub fn riff_open(
             //println!("share_map_loop: {:?}", instance.share_map);
             if let Some(shares) = instance.open_map.get(&op_id) {
                 //println!("op_id {}", op_id);
-                println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
+                //println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
                 //println!("shares: {:?}", shares);
                 if shares.len() as i64 == share.threshold {
                     //var recons_secret = jiff.hooks.reconstructShare(jiff, shares);
                     let recons_secret = jiff_lagrange(shares.clone());
                     instance.open_finished = true;
-                    instance.open_map.remove(&op_id);
+                    //instance.open_map.remove(&op_id);
                     return Some(recons_secret);
                 }
             }
