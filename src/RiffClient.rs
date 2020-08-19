@@ -83,6 +83,7 @@ pub enum JsonEnum {
     Array(Vec<i64>),
     ArrayBytes(Vec<u8>),
     ArrayShare(Vec<SecretShare>),
+    SingleShare(SecretShare),
     Null,
 }
 pub struct RiffClient {

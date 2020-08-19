@@ -343,7 +343,7 @@ impl RiffClientTrait for RiffClientRest {
             panic!("secret must fit inside Zp");
         }
         std::mem::drop(instance);
-        return shamir::riff_share(riff.clone(), secret, options);
+        return shamir::riff_share(riff.clone(), Some(secret), options);
     }
 
     fn open(

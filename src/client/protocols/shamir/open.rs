@@ -60,10 +60,10 @@ pub fn riff_open(
             parties.clone(),
             share.holders.clone(),
         );
-        println!("gen_op_id2: {}", op_id);
+        //println!("gen_op_id2: {}", op_id);
         instance = riff.lock().unwrap();
     }
-    println!("op_id in open: {}", op_id);
+    //println!("op_id in open: {}", op_id);
 
     // Party is a holder
     if let Some(_) = share.holders.iter().position(|&x| x == instance.id) {

@@ -209,5 +209,37 @@ impl SecretShare {
 
     }
 
+    pub fn smult_bgw(&self, o: SecretShare,mut op_id: Option<String>, riff: Arc<Mutex<RiffClientRest>>) -> SecretShare {
+        if !self.Zp == o.Zp {
+            panic!("shares must belong to the same field (bgw*)");
+        }
+
+        if !(self.holders == o.holders) {
+            panic!("shares must be held by the same parties (bgw*)");
+        }
+
+        if ((self.threshold - 1) + (o.threshold - 1)) > (self.holders.len() as i64 - 1) {
+            panic!("threshold too high for BGW (*)");
+        } 
+
+        if op_id == Option::None {
+            op_id = Some(counters::gen_op_id(riff.clone(), String::from("smult_bgw"), self.holders.clone()));
+        }
+
+        // ensure thresholds are fine
+        let new_threshold = (self.threshold - 1) + (o.threshold - 1) + 1;
+        //if new_threshold > self.holders
+        // if (new_threshold > this.holders) {
+        //     var errorMsg = 'Threshold too large for smult_bgw: ' + new_threshold;
+        //     errorMsg += '. Shares: ' + this.toString() + ', ' + o.toString();
+        //     throw new Error(errorMsg);
+        //   }
+
+        // multiply via the BGW protocol
+        let result_value = helper::modF(json!(self.value * o.value), json!(self.Zp));
+        let result = SecretShare::new(result_value, self.holders, new_threshold, self.Zp);
+        
+    }
+
 
 }

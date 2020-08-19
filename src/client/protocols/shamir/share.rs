@@ -103,12 +103,17 @@ pub fn jiff_compute_shares(
 
 pub fn riff_share(
     riff: Arc<Mutex<RiffClientRest>>,
-    secret: i64,
+    secret_p: Option<i64>,
     options: HashMap<String, JsonEnum>,
 ) -> Vec<SecretShare> {
     //print!("shamir");
     let mut instance = riff.lock().unwrap();
     // defaults
+    let mut secret = 0;
+    if let Some(data) = secret_p {
+        secret = data;
+    }
+    
     let mut Zp = 0;
     if let Some(data) = options.get(&String::from("Zp")) {
         if let JsonEnum::Number(Zp_j) = data {
