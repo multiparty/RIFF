@@ -64,6 +64,7 @@ pub struct restfulAPI {
     pub maps: maps,
     pub sodium: bool,
     pub log: bool,
+    pub cryptoMap: Value, // { computation_id -> { op_id -> { party_id -> { 'shares': [ numeric shares for this party ], 'values': <any non-secret value(s) for this party> } } } }
 }
 
 impl server_trait for restfulAPI {
@@ -104,6 +105,7 @@ impl restfulAPI {
                 let full_body = hyper::body::to_bytes(req.into_body()).await?;
                 //let body = req.into_body();
                 let body_string = std::str::from_utf8(&full_body[..]).unwrap();
+                //println!("{}", body_string);
                 let msg: Value = serde_json::from_str(body_string).unwrap();
                 //let deserialized: JasonMessage_rest = serde_json::from_str(&body_string[..]).unwrap();
                 restful_instance.lock().unwrap().log(format!("Server received: {:?}", msg));
@@ -245,6 +247,7 @@ impl restfulAPI {
                 .as_object_mut()
                 .unwrap()
                 .insert(computation_id.to_string(), json!({}));
+            self.cryptoMap.as_object_mut().unwrap().insert(computation_id.to_string(), json!({}));
         }
         if !self.computationMaps.clientIds[computation_id.to_string()]
             .as_array_mut()
@@ -294,6 +297,7 @@ impl restfulAPI {
         self.mail_box.as_object_mut().unwrap().remove(&computation_id.to_string());
         self.maps.tags.as_object_mut().unwrap().remove(&computation_id.to_string());
         self.maps.pendingMessages.as_object_mut().unwrap().remove(&computation_id.to_string());
+        self.cryptoMap.as_object_mut().unwrap().remove(&computation_id.to_string());
 
     }
 
@@ -386,6 +390,7 @@ impl restfulAPI {
                 "open" => output = handlers::open(self, computation_id.clone(), from_id.clone(), payload.clone()),
                 "share" => output = handlers::share(self, computation_id.clone(), from_id.clone(), payload.clone()),
                 "free" => output = handlers::free(self, computation_id.clone(), from_id.clone(), payload.clone()),
+                "crypto_provider" => output = handlers::crypto_provider(self, computation_id.clone(), from_id.clone(), payload.clone()),
                 _ => return json!({
                     "success": false,
                     "label": label.clone(),
