@@ -25,7 +25,7 @@ mod arithemetic_test;
 
 #[test]
 pub fn test_suite() {
-    let all_tests = vec![String::from("smult")];//String::from("sadd"), 
+    let all_tests = vec![String::from("sadd"), String::from("smult")];//, 
 
     let mut config = HashMap::new();
     config.insert(String::from("sadd"), HashMap::new());
