@@ -266,6 +266,8 @@ impl RiffClientRest {
                 let instance_move = Arc::clone(&instance);
                 thread::spawn(move || {
                     sodiumoxide::init().unwrap();
+                    // TODO : potential async/await implementation, not as straightforward as the
+                    // operations changes
                     loop {
                         //println!("poll!");
                         RiffClientRest::restPoll(instance_move.clone());

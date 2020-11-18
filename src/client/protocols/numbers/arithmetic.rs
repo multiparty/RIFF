@@ -16,6 +16,7 @@ use std::{
     thread,
     time::Duration,
 };
+// use futures::{} TODO
 use crate::util::helpers as uhelper;
 use crate::preprocessing::api;
 use crate::api::crypto_provider;
@@ -34,7 +35,7 @@ impl SecretShare {
             Zp: self.Zp,
         }
     }
- 
+
     pub fn csub(&self, cst: i64) -> SecretShare {
         let sum = self.value - cst;
         let afterMod = helper::modF(json!(sum), json!(self.Zp));
@@ -114,7 +115,7 @@ impl SecretShare {
         }
     }
 
-    
+
    //Multiplication of two secret shares through Beaver Triplets.
     pub fn smult(&self, o: SecretShare,mut op_id: Option<String>, riff: Arc<Mutex<RiffClientRest>>) -> SecretShare{
         if !self.Zp == o.Zp {
@@ -144,6 +145,8 @@ impl SecretShare {
             options.insert(String::from("op_id"), JsonEnum::String(op_id_options.clone()));
             crypto_provider::from_crypto_provider(riff.clone(), String::from("triplet"), options);
 
+            //TODO: async/await implementation - await the incoming shares without blocking
+            //      should be able to avoid locking and unlocking the RIFF Instance frequently
             loop {
                 let instance = riff.lock().unwrap();
 
@@ -154,15 +157,14 @@ impl SecretShare {
                     }
                     break;
                 }
-                println!("in loop");
                 std::mem::drop(instance);
                 thread::sleep(Duration::from_secs(1));
             }
 
-            
+
         } else {
             //to-do: client side preprocessing
-           
+
         }
 
         let a = triplet_shares[0].clone();
@@ -177,16 +179,16 @@ impl SecretShare {
         // The only communication cost.
         let mut options_1 = HashMap::new();
         let mut op_id_options = op_id.clone().unwrap();
-        op_id_options.push_str(":open1"); 
+        op_id_options.push_str(":open1");
         println!("op_id_1: {}", op_id_options);
         options_1.insert(String::from("parties"), JsonEnum::Array(e.holders.clone()));
         options_1.insert(String::from("op_id"), JsonEnum::String(op_id_options));
-        
+
         let e_value = open::riff_open(riff.clone(), e, options_1).unwrap();
         println!("after open");
         let mut options_2 = HashMap::new();
         let mut op_id_options = op_id.clone().unwrap();
-        op_id_options.push_str(":open2"); 
+        op_id_options.push_str(":open2");
         println!("op_id_2: {}", op_id_options);
         options_2.insert(String::from("parties"), JsonEnum::Array(d.holders.clone()));
         options_2.insert(String::from("op_id"), JsonEnum::String(op_id_options));
@@ -220,7 +222,7 @@ impl SecretShare {
 
         if ((self.threshold - 1) + (o.threshold - 1)) > (self.holders.len() as i64 - 1) {
             panic!("threshold too high for BGW (*)");
-        } 
+        }
 
         if op_id == Option::None {
             op_id = Some(counters::gen_op_id(riff.clone(), String::from("smult_bgw"), self.holders.clone()));
@@ -238,7 +240,7 @@ impl SecretShare {
         // multiply via the BGW protocol
         let result_value = helper::modF(json!(self.value * o.value), json!(self.Zp));
         let result = SecretShare::new(result_value, self.holders, new_threshold, self.Zp);
-        
+
     }
 
 

@@ -56,13 +56,10 @@ pub fn jiff_compute_shares(
         polynomial[i] = json!(helper::random(Zp.clone()));
         i = i + 1;
     }
-    //println!{"polynomial: {:?}", polynomial};
 
     // Compute each players share such that share[i] = f(i)
     for party in parties_list.as_array().unwrap() {
         let p_id = party.clone();
-        //println!("party_id: {:?}", p_id);
-        //println!("poly lens: {}", polynomial.len());
         shares
             .as_object_mut()
             .unwrap()
@@ -95,7 +92,6 @@ pub fn jiff_compute_shares(
                 ),
                 Zp.clone()
             ));
-            //println!("power: {:?}", power);
         }
     }
     return shares;
@@ -113,7 +109,7 @@ pub fn riff_share(
     if let Some(data) = secret_p {
         secret = data;
     }
-    
+
     let mut Zp = 0;
     if let Some(data) = options.get(&String::from("Zp")) {
         if let JsonEnum::Number(Zp_j) = data {
@@ -256,12 +252,10 @@ pub fn riff_share(
             }
             //let share_from_other;
             std::mem::drop(instance);
+            //TODO: async/await implementation - await the incoming shares without blocking
+            //      should be able to avoid locking and unlocking the RIFF Instance frequently
             loop {
-                //println!("share loop");
                 instance = riff.lock().unwrap();
-                //println!("{} share loop", instance.id);
-                //println!("share_id {:?}", share_id);
-                //println!("share_map_loop: {:?}", instance.share_map);
                 if let Some(data) = instance.share_map.get(&share_id) {
                     //println!("share_id {:?}", share_id);
                     if let Some(share) = data.get(&sender) {
@@ -274,7 +268,6 @@ pub fn riff_share(
                         break;
                     }
                 }
-                //println!("in loop");
                 std::mem::drop(instance);
                 thread::sleep(Duration::from_millis(100));
             }

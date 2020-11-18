@@ -92,25 +92,17 @@ pub fn riff_open(
     if let Some(_) = parties.iter().position(|&x| x == instance.id) {
         instance.open_finished = false;
         std::mem::drop(instance);
+        //TODO: async/await implementation - await the incoming shares without blocking
+        //      should be able to avoid locking and unlocking the RIFF Instance frequently
         loop {
-            
-            instance = riff.lock().unwrap();
-            //println!("{} in open loop", instance.id);
-            //println!("share_id {:?}", share_id);
-            //println!("share_map_loop: {:?}", instance.share_map);
+
             if let Some(shares) = instance.open_map.get(&op_id) {
-                //println!("op_id {}", op_id);
-                //println!("shares len {}, share.threshold {} ", shares.len(), share.threshold);
-                //println!("shares: {:?}", shares);
                 if shares.len() as i64 == share.threshold {
-                    //var recons_secret = jiff.hooks.reconstructShare(jiff, shares);
                     let recons_secret = jiff_lagrange(shares.clone());
                     instance.open_finished = true;
-                    //instance.open_map.remove(&op_id);
                     return Some(recons_secret);
                 }
             }
-            //println!("in loop");
             std::mem::drop(instance);
             thread::sleep(Duration::from_millis(100));
         }

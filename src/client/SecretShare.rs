@@ -91,6 +91,8 @@ impl SecretShare {
             instance = riff.lock().unwrap();
 
             std::mem::drop(instance);
+            //TODO: async/await implementation - await the incoming shares without blocking
+            //      should be able to avoid locking and unlocking the RIFF Instance frequently
             loop {
                 instance = riff.lock().unwrap();
 
@@ -101,7 +103,6 @@ impl SecretShare {
                     }
                     break;
                 }
-                //println!("in loop");
                 std::mem::drop(instance);
                 thread::sleep(Duration::from_secs(1));
             }
